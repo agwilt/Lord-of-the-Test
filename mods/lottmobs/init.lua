@@ -1,134 +1,23 @@
 lottmobs = {}
 
-lottmobs.guard = function(self, clicker, payment, mob_name)
-	local item = clicker:get_wielded_item()
-	local name = clicker:get_player_name()
-	if item:get_name() == "lottfarming:corn"
-	or item:get_name() == "farming:bread" then
-		local hp = self.object:get_hp()
-		if hp >= self.hp_max then
-			minetest.chat_send_player(name, "NPC at full health.")
-			return
-		end
-		hp = hp + 4
-		if hp > self.hp_max then hp = self.hp_max end
-		self.object:set_hp(hp)
-		if not minetest.setting_getbool("creative_mode") then
-			item:take_item()
-			clicker:set_wielded_item(item)
-		end
-	elseif item:get_name() == payment then
-		if self.tamed == false then
-			lottmobs.face_pos(self, clicker:getpos())
-			self.state = "stand"
-			minetest.show_formspec(name, "mob_hiring", lottmobs.hiring)
-			lottmobs.hire = function(cost)
-				if math.random(1, (50/cost)) == 1 then
-					minetest.chat_send_player(name, "[NPC] <" .. mob_name .. "> Okay, I'll work for you.")
-					local count = item:get_count()
-					if count > cost or minetest.setting_getbool("creative_mode") then
-						if not minetest.setting_getbool("creative_mode") then
-							item:take_item(cost)
-							clicker:set_wielded_item(item)
-						end
-						self.tamed = true
-						if not self.owner or self.owner == "" then
-							self.owner = clicker:get_player_name()
-						end
-						self.order = "follow"
-						minetest.show_formspec(name, "mob_naming", "field[naming;Name your guard:;]")
-					else
-						minetest.chat_send_player(name, "[NPC] <" .. mob_name .. "> What, you don't have that much money?! Stop wasting my time!")
-					end
-				else
-					local rand = math.random(1, 5)
-					if rand == 1 then
-						minetest.chat_send_player(name, "[NPC] <" .. mob_name .. "> Stop bothering me!")
-						self.object:remove()
-					elseif rand == 2 then
-						minetest.chat_send_player(name, "[NPC] <" .. mob_name .. "> Are you mocking me? I don't take kindly to mockers!")
-						self.state = "attack"
-						self.attack = clicker
-					elseif rand == 3 then
-						minetest.chat_send_player(name, "[NPC] <" .. mob_name .. "> Your joking, right? Oh, you're serious? Well, to let you know, I won't be working for you for that pitiful amount.")
-					else
-						minetest.chat_send_player(name, "[NPC] <" .. mob_name .. "> Do you really think I'll work for you for that much?!")
-					end
-				end
-			end
-			lottmobs.name = function(name)
-				self.game_name = name
-				self.nametag = name
-			end
-		end
-	else
-		if self.owner and self.owner == name then
-			if self.order == "follow" then
-				self.order = "stand"
-			else
-				self.order = "follow"
-			end
-		end
-	end
-end
-
+dofile(minetest.get_modpath("lottmobs").."/functions.lua")
 dofile(minetest.get_modpath("lottmobs").."/craftitems.lua")
 dofile(minetest.get_modpath("lottmobs").."/elves.lua")
-dofile(minetest.get_modpath("lottmobs").."/dwarfs.lua")
+dofile(minetest.get_modpath("lottmobs").."/dwarves.lua")
+dofile(minetest.get_modpath("lottmobs").."/hobbits.lua")
 dofile(minetest.get_modpath("lottmobs").."/horse.lua")
 dofile(minetest.get_modpath("lottmobs").."/trader_goods.lua")
 dofile(minetest.get_modpath("lottmobs").."/trader.lua")
 dofile(minetest.get_modpath("lottmobs").."/special_mobs.lua")
+dofile(minetest.get_modpath("lottmobs").."/animals.lua")
+
 -- Mobs
 
-mobs:register_mob("lottmobs:chicken", {
-	type = "animal",
-	hp_min = 5,
-	hp_max = 10,
-	collisionbox = {-0.3,0,-0.3, 0.3,0.8,0.3},
-	textures = {
-		{"lottmobs_chicken.png"},
-	},
-	visual = "mesh",
-	mesh = "chicken_model.x",
-	makes_footstep_sound = true,
-	walk_velocity = 1,
-	armor = 300,
-		drops = {
-		{name = "lottmobs:meat_raw",
-		chance = 1,
-		min = 1,
-		max = 3,},
-	},
-	light_resistant = true,
-	drawtype = "front",
-	water_damage = 1,
-	lava_damage = 10,
-	light_damage = 0,
-	animation = {
-		speed_normal = 10,
-		speed_run = 15,
-		stand_start = 0,
-		stand_end = 0,
-		sit_start = 1,
-		sit_end = 9,
-		walk_start = 10,
-		walk_end = 50,
-	},
-	jump = true,
-	step=1,
-	passive = true,
-	sounds = {
-	},
-})
-mobs:register_spawn("lottmobs:chicken", {"lottmapgen:gondor_grass"}, 20, -1, 6000, 3, 31000)
-mobs:register_spawn("lottmobs:chicken", {"lottmapgen:dunland_grass"}, 20, -1, 6000, 3, 31000)
-mobs:register_spawn("lottmobs:chicken", {"lottmapgen:rohan_grass"}, 20, -1, 6000, 3, 31000)
-mobs:register_spawn("lottmobs:chicken", {"lottmapgen:shire_grass"}, 20, -1, 5000, 3, 31000)
 
 mobs:register_mob("lottmobs:ent", {
 	type = "npc",
-	hp_min = 50,
+        race = "ents",
+        hp_min = 50,
 	hp_max = 70,
 	collisionbox = {-0.5, 0, -0.5, 0.5, 5, 0.5},
 	textures = {
@@ -295,7 +184,8 @@ mobs:register_mob("lottmobs:spider", {
 mobs:register_spawn("lottmobs:spider", {"lottmapgen:mirkwood_grass"}, 20, -10, 6000, 3, 31000)
 
 mobs:register_mob("lottmobs:rohan_guard", {
-	type = "npc",
+        type = "npc",
+        race = "men",
 	hp_min = 20,
 	hp_max = 30,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
@@ -385,18 +275,21 @@ mobs:register_mob("lottmobs:rohan_guard", {
 		attack = "default_punch2",
 	},
 	on_rightclick = function(self, clicker)
-		lottmobs.guard(self, clicker, "default:gold_ingot", "Rohan Guard")
+		lottmobs.guard(self, clicker, "default:gold_ingot", "Rohan Guard", "human")
 	end,
+	do_custom = lottmobs.do_custom_guard,
 	attacks_monsters = true,
 	peaceful = true,
 	group_attack = true,
 	step = 1,
 })
 mobs:register_spawn("lottmobs:rohan_guard", {"lottmapgen:rohan_grass"}, 20, -1, 6000, 3, 31000)
+lottmobs.register_guard_craftitem("lottmobs:rohan_guard", "Rohan Guard", "lottmobs_rohan_guard_inv.png")
 
 mobs:register_mob("lottmobs:gondor_guard", {
 	type = "npc",
-	hp_min = 20,
+        race = "men",
+        hp_min = 20,
 	hp_max = 30,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
 	textures = {
@@ -501,18 +394,21 @@ mobs:register_mob("lottmobs:gondor_guard", {
 		attack = "default_punch2",
 	},
 	on_rightclick = function(self, clicker)
-		lottmobs.guard(self, clicker, "default:gold_ingot", "Gondor Guard")
+		lottmobs.guard(self, clicker, "default:gold_ingot", "Gondor Guard", "human")
 	end,
+	do_custom = lottmobs.do_custom_guard,
 	attacks_monsters = true,
 	peaceful = true,
 	group_attack = true,
 	step = 1,
 })
 mobs:register_spawn("lottmobs:gondor_guard", {"lottmapgen:gondor_grass"}, 20, -1, 6000, 3, 31000)
+lottmobs.register_guard_craftitem("lottmobs:gondor_guard", "Gondor Guard", "lottmobs_gondor_guard_inv.png")
 
 mobs:register_mob("lottmobs:ithilien_ranger", {
 	type = "npc",
-	hp_min = 25,
+        race = "men",
+        hp_min = 25,
 	hp_max = 40,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
 	textures = {
@@ -597,18 +493,21 @@ mobs:register_mob("lottmobs:ithilien_ranger", {
 		attack = "default_punch2",
 	},
 	on_rightclick = function(self, clicker)
-		lottmobs.guard(self, clicker, "default:gold_ingot", "Ithilien Ranger")
+		lottmobs.guard(self, clicker, "default:gold_ingot", "Ithilien Ranger", "human")
 	end,
+	do_custom = lottmobs.do_custom_guard,
 	attacks_monsters = true,
 	peaceful = true,
 	group_attack = true,
 	step = 1,
 })
 mobs:register_spawn("lottmobs:ithilien_ranger", {"lottmapgen:ithilien_grass"}, 20, -1, 6000, 3, 31000)
+lottmobs.register_guard_craftitem("lottmobs:ithilien_ranger", "Ithilien Ranger", "lottmobs_ithilien_ranger_inv.png")
 
 mobs:register_mob("lottmobs:dunlending", {
-	type = "monster",
-	hp_min = 17,
+        type = "npc",
+        race = "orcs",
+        hp_min = 17,
 	hp_max = 27,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
 	visual = "mesh",
@@ -688,7 +587,10 @@ mobs:register_mob("lottmobs:dunlending", {
 	water_damage = 5,
 	lava_damage = 5,
 	light_damage = 0,
-	on_rightclick = nil,
+	on_rightclick = function(self, clicker)
+		lottmobs.guard(self, clicker, "default:gold_ingot", "Dunlending", "human")
+	end,
+        do_custom = lottmobs.do_custom_guard,
 	attack_type = "dogfight",
 	animation = {
 		speed_normal = 15,
@@ -711,112 +613,14 @@ mobs:register_mob("lottmobs:dunlending", {
 	step = 1,
 })
 mobs:register_spawn("lottmobs:dunlending", {"lottmapgen:dunland_grass"}, 20, -1, 6000, 3, 31000)
-
-mobs:register_mob("lottmobs:hobbit", {
-	type = "animal",
-	hp_min = 5,
-	hp_max = 15,
-	collisionbox = {-0.3,-0.75,-0.3, 0.3,0.7,0.3},
-	textures = {
-		{"lottmobs_hobbit.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png"},
-		{"lottmobs_hobbit_1.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png"},
-		{"lottmobs_hobbit_2.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png"},
-		{"lottmobs_hobbit_3.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png"},
-	},
-	visual = "mesh",
-	mesh = "lottarmor_character.b3d",
-	visual_size = {x=1, y=0.75},
-	makes_footstep_sound = true,
-	walk_velocity = 1,
-	armor = 300,
-	drops = {
-		{name = "lottfarming:corn_seed",
-		chance = 5,
-		min = 3,
-		max = 10,},
-		{name = "lottfarming:berries_seed",
-		chance = 5,
-		min = 3,
-		max = 10,},
-		{name = "lottfarming:barley_seed",
-		chance = 5,
-		min = 3,
-		max = 10,},
-		{name = "lottfarming:pipeweed_seed",
-		chance = 5,
-		min = 3,
-		max = 10,},
-		{name = "lottfarming:potato_seed",
-		chance = 5,
-		min = 3,
-		max = 10,},
-		{name = "lottfarming:pipeweed",
-		chance = 10,
-		min = 1,
-		max = 4,},
-		{name = "lottfarming:pipe",
-		chance = 10,
-		min = 1,
-		max = 1,},
-		{name = "lottfarming:tomatoes_cooked",
-		chance = 15,
-		min = 1,
-		max = 7,},
-		{name = "lottfarming:turnip_cooked",
-		chance = 15,
-		min = 1,
-		max = 7,},
-		{name = "lottfarming:melon",
-		chance = 15,
-		min = 1,
-		max = 7,},
-		{name = "lottpotion:ale",
-		chance = 20,
-		min = 1,
-		max = 5,},
-		{name = "lottpotion:wine",
-		chance = 20,
-		min = 1,
-		max = 5,},
-		{name = "lottpotion:beer",
-		chance = 20,
-		min = 1,
-		max = 5,},
-		{name = "lottpotion:cider",
-		chance = 20,
-		min = 1,
-		max = 5,},
-	},
-	light_resistant = true,
-	drawtype = "front",
-	water_damage = 1,
-	lava_damage = 5,
-	light_damage = 0,
-	animation = {
-		speed_normal = 15,
-		speed_run = 15,
-		stand_start = 0,
-		stand_end = 79,
-		walk_start = 168,
-		walk_end = 187,
-		run_start = 168,
-		run_end = 187,
-		punch_start = 189,
-		punch_end = 198,
-	},
-	jump = true,
-	step=1,
-	passive = true,
-	sounds = {
-	},
-})
-mobs:register_spawn("lottmobs:hobbit", {"lottmapgen:shire_grass"}, 20, -1, 6000, 3, 31000)
+lottmobs.register_guard_craftitem("lottmobs:dunlending", "Dunlending", "lottmobs_dunlending_inv.png")
 
 local orc_armor = "lottarmor_chestplate_steel.png^lottarmor_leggings_steel.png^lottarmor_helmet_steel.png^lottarmor_boots_steel.png^lottarmor_shield_steel.png^[colorize:#00000055"
 
 mobs:register_mob("lottmobs:orc", {
-	type = "monster",
-	hp_min = 15,
+	type = "npc",
+        race = "orcs",
+        hp_min = 15,
 	hp_max = 35,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
 	visual = "mesh",
@@ -881,7 +685,6 @@ mobs:register_mob("lottmobs:orc", {
 	water_damage = 5,
 	lava_damage = 10,
 	light_damage = 0,
-	on_rightclick = nil,
 	attack_type = "dogfight",
 	animation = {
 		speed_normal = 15,
@@ -901,6 +704,10 @@ mobs:register_mob("lottmobs:orc", {
 		death = "mobs_death1",
 		attack = "default_punch2",
 	},
+	on_rightclick = function(self, clicker)
+		lottmobs.guard(self, clicker, "default:gold_ingot", "Orc", "orc")
+	end,
+	do_custom = lottmobs.do_custom_guard,
 	attacks_monsters = true,
 	peaceful = true,
 	group_attack = true,
@@ -910,10 +717,12 @@ mobs:register_spawn("lottmobs:orc", {"lottmapgen:mordor_stone"}, 20, -1, 500, 3,
 mobs:register_spawn("lottmobs:orc", {"default:snowblock"}, 15, -1, 8000, 3, 31000)
 mobs:register_spawn("lottmobs:orc", {"default:dirt_with_snow"}, 15, -1, 8000, 3, 31000)
 mobs:register_spawn("lottmobs:orc", {"lottmapgen:angsnowblock"}, 20, -1, 6000, 5, 31000)
+lottmobs.register_guard_craftitem("lottmobs:orc", "Orc Guard", "lottmobs_orc_guard_inv.png")
 
 mobs:register_mob("lottmobs:raiding_orc", {
-	type = "monster",
-	hp_min = 15,
+	type = "npc",
+        race = "orcs",
+        hp_min = 15,
 	hp_max = 35,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
 	visual = "mesh",
@@ -980,7 +789,6 @@ mobs:register_mob("lottmobs:raiding_orc", {
 	water_damage = 5,
 	lava_damage = 10,
 	light_damage = 2,
-	on_rightclick = nil,
 	attack_type = "dogfight",
 	animation = {
 		speed_normal = 15,
@@ -1000,6 +808,10 @@ mobs:register_mob("lottmobs:raiding_orc", {
 		death = "mobs_death1",
 		attack = "default_punch2",
 	},
+	on_rightclick = function(self, clicker)
+		lottmobs.guard(self, clicker, "default:gold_ingot", "Raiding Orc", "orc", "lottmobs:orc")
+	end,
+	do_custom = lottmobs.do_custom_guard,
 	attacks_monsters = true,
 	peaceful = true,
 	group_attack = true,
@@ -1010,8 +822,9 @@ mobs:register_spawn("lottmobs:raiding_orc", {"lottmapgen:rohan_grass"}, 2, -1, 4
 mobs:register_spawn("lottmobs:raiding_orc", {"lottmapgen:gondor_grass"}, 2, -1, 4000, 5, 31000)
 
 mobs:register_mob("lottmobs:warg", {
-	type = "monster",
-	hp_min = 25,
+	type = "npc",
+        race = "orcs",
+        hp_min = 25,
 	hp_max = 40,
 	collisionbox = {-0.7, -0.75, -0.7, 0.7, 1, 0.7},
 	visual_size = {x = 0.8, y = 0.8},
@@ -1054,6 +867,7 @@ mobs:register_mob("lottmobs:warg", {
 		punch_start = 260,
 		punch_end = 290,
 	},
+        do_custom = lottmobs.do_custom_guard,
 	jump = true,
 	attacks_monsters = true,
 	peaceful = true,
@@ -1066,8 +880,9 @@ mobs:register_spawn("lottmobs:warg", {"default:snowblock"}, 15, -1, 7500, 3, 310
 mobs:register_spawn("lottmobs:warg", {"lottmapgen:angsnowblock"}, 20, -1, 5000, 5, 31000)
 
 mobs:register_mob("lottmobs:uruk_hai", {
-	type = "monster",
-	hp_min = 25,
+	type = "npc",
+        race = "orcs",
+        hp_min = 25,
 	hp_max = 40,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
 	visual = "mesh",
@@ -1131,7 +946,6 @@ mobs:register_mob("lottmobs:uruk_hai", {
 	water_damage = 1,
 	lava_damage = 5,
 	light_damage = 0,
-	on_rightclick = nil,
 	attack_type = "dogfight",
 	animation = {
 		speed_normal = 15,
@@ -1151,6 +965,10 @@ mobs:register_mob("lottmobs:uruk_hai", {
 		death = "mobs_death2",
 		attack = "mobs_slash_attack",
 	},
+	on_rightclick = function(self, clicker)
+		lottmobs.guard(self, clicker, "default:gold_ingot", "Uruk Hai", "orc")
+	end,
+	do_custom = lottmobs.do_custom_guard,
 	attacks_monsters = true,
 	peaceful = true,
 	group_attack = true,
@@ -1158,10 +976,12 @@ mobs:register_mob("lottmobs:uruk_hai", {
 })
 mobs:register_spawn("lottmobs:uruk_hai", {"lottmapgen:mordor_stone"}, 15, -1, 2000, 3, 31000)
 mobs:register_spawn("lottmobs:uruk_hai", {"lottmapgen:fangorn_grass"}, 2, -1, 2000, 3, 31000)
+lottmobs.register_guard_craftitem("lottmobs:uruk_hai", "Uruk Hai Guard", "lottmobs_uruk_hai_guard_inv.png")
 
 mobs:register_mob("lottmobs:battle_troll", {
-	type = "monster",
-	hp_min = 45,
+	type = "npc",
+        race = "orcs",
+        hp_min = 45,
 	hp_max = 60,
 	collisionbox = {-0.7, -0.01, -0.7, 0.7, 2.6, 0.7},
 	visual = "mesh",
@@ -1212,6 +1032,7 @@ mobs:register_mob("lottmobs:battle_troll", {
 	lava_damage = 1,
 	light_damage = 0,
 	on_rightclick = nil,
+        do_custom = lottmobs.do_custom_guard,
 	attack_type = "dogfight",
 	animation = {
 		stand_start = 0,
@@ -1237,8 +1058,9 @@ mobs:register_mob("lottmobs:battle_troll", {
 mobs:register_spawn("lottmobs:battle_troll", {"lottmapgen:mordor_stone"}, 10, -1, 10000, 5, 31000)
 
 mobs:register_mob("lottmobs:half_troll", {
-	type = "monster",
-	hp_min = 20,
+	type = "npc",
+        race = "orcs",
+        hp_min = 20,
 	hp_max = 30,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
 	visual = "mesh",
@@ -1297,6 +1119,7 @@ mobs:register_mob("lottmobs:half_troll", {
 	lava_damage = 10,
 	light_damage = 0,
 	on_rightclick = nil,
+        do_custom = lottmobs.do_custom_guard,
 	attack_type = "dogfight",
 	animation = {
 		speed_normal = 15,
@@ -1344,9 +1167,9 @@ mobs:register_mob("lottmobs:nazgul", {
 	damage = 10,
 	drops = {
 		{name = "lottores:mithril_ingot",
-		chance = 1,
-		min = 5,
-		max = 15,},
+		chance = 5,
+		min = 1,
+		max = 5,},
 		{name = "lottarmor:chestplate_gold",
 		chance = 3,
 		min = 1,
@@ -1425,31 +1248,31 @@ mobs:register_mob("lottmobs:witch_king", {
 	damage = 12,
 	drops = {
 		{name = "lottores:mithril_ingot",
-		chance = 1,
-		min = 20,
-		max = 40,},
-		{name = "lottarmor:chestplate_mithril",
-		chance = 3,
+		chance = 7,
 		min = 1,
-		max = 11,},
+		max = 10,},
+		{name = "lottarmor:chestplate_mithril",
+		chance = 6,
+		min = 1,
+		max = 1,},
 		{name = "lottarmor:leggings_mithril",
-		chance = 3,
+		chance = 6,
 		min = 1,
 		max = 1,},
 		{name = "lottarmor:helmet_mithril",
-		chance = 3,
+		chance = 6,
 		min = 1,
 		max = 1,},
 		{name = "lottarmor:boots_mithril",
-		chance = 3,
+		chance = 6,
 		min = 1,
 		max = 1,},
 		{name = "lottweapons:mithril_spear",
-		chance = 3,
+		chance = 6,
 		min = 1,
 		max = 1,},
 		{name = "lottores:mithrilsword",
-		chance = 3,
+		chance = 6,
 		min = 1,
 		max = 1,},
 	},
@@ -1507,63 +1330,63 @@ mobs:register_mob("lottmobs:balrog", {
 	damage = 30,
 	drops = {
 		{name = "lottores:mithril_ingot",
-		chance = 5,
-		min = 10,
-		max = 50,},
+		chance = 10,
+		min = 1,
+		max = 25,},
 		{name = "lottores:mithrilsword",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottores:mithrilpickaxe",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottweapons:mithril_battleaxe",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottweapons:mithril_spear",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottweapons:mithril_battleaxe",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottweapons:mithril_warhammer",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottweapons:mithril_dagger",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottthrowing:crossbow_mithril",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottthrowing:bolt_mithril",
-		chance = 5,
+		chance = 10,
 		min = 10,
 		max = 50,},
 		{name = "lottarmor:helmet_mithril",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottarmor:chestplate_mithril",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottarmor:leggings_mithril",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottarmor:boots_mithril",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 		{name = "lottarmor:shield_mithril",
-		chance = 5,
+		chance = 10,
 		min = 1,
 		max = 1,},
 	},
@@ -1644,8 +1467,9 @@ mobs:register_mob("lottmobs:dead_men", {
 mobs:register_spawn("lottmobs:dead_men", {"default:mossycobble"}, 2, -1, 6000, 10, -100)
 
 mobs:register_mob("lottmobs:troll", {
-	type = "monster",
-	hp_min = 50,
+	type = "npc",
+        race = "orcs",
+        hp_min = 50,
 	hp_max = 65,
 	collisionbox = {-0.7, -0.01, -0.7, 0.7, 2.6, 0.7},
 	visual = "mesh",
@@ -1714,6 +1538,7 @@ mobs:register_mob("lottmobs:troll", {
 	lava_damage = 0,
 	light_damage = 60,
 	on_rightclick = nil,
+        do_custom = lottmobs.do_custom_guard,
 	attack_type = "dogfight",
 	animation = {
 		stand_start = 0,

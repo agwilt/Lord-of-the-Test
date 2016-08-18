@@ -53,6 +53,7 @@ local PLANT10 = 1000
 local PLANT11 = 2000
 local PLANT12 = 5000
 local PLANT13 = 10000
+local PLANT14 = 100000
 
 -- 2D noise for temperature
 
@@ -113,6 +114,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local data = vm:get_data()
 
 	local c_air = minetest.get_content_id("air")
+	local c_ignore = minetest.get_content_id("ignore")
 	local c_sand = minetest.get_content_id("default:sand")
 	local c_desertsand = minetest.get_content_id("default:desert_sand")
 	local c_snowblock = minetest.get_content_id("default:snowblock")
@@ -128,6 +130,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local c_stonecopper = minetest.get_content_id("default:stone_with_copper")
 	local c_stoneiron = minetest.get_content_id("default:stone_with_iron")
 	local c_stonecoal = minetest.get_content_id("default:stone_with_coal")
+        local c_chalk = minetest.get_content_id("darkage:chalk")
 	local c_water = minetest.get_content_id("default:water_source")
 	local c_river_water = minetest.get_content_id("default:river_water_source")
 	local c_morwat = minetest.get_content_id("lottmapgen:blacksource")
@@ -160,6 +163,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local c_lorhous = minetest.get_content_id("lottmapgen:lorienhouse")
 	local c_mirktre = minetest.get_content_id("lottmapgen:mirkhouse")
 	local c_rohfort = minetest.get_content_id("lottmapgen:rohanfort")
+	local c_dwahous = minetest.get_content_id("lottmapgen:dwarfhouse")
 
 	local sidelen = x1 - x0 + 1
 	local chulens = {x=sidelen, y=sidelen, z=sidelen}
@@ -212,7 +216,8 @@ minetest.register_on_generated(function(minp, maxp, seed)
 				local via = area:index(x, y + 1, z)
 				local nodida = data[via]
 				if nodid == c_stone -- if stone
-				or nodid == c_stonecopper
+                                or nodid == c_stonecopper
+                                or nodid == c_chalk
 				or nodid == c_stoneiron
 				or nodid == c_stonecoal then
 					if y > mapgen_params.water_level-32 then
@@ -224,6 +229,11 @@ minetest.register_on_generated(function(minp, maxp, seed)
 							if math.random(3) == 1 then
 								data[vi] = c_stoneiron
 							end
+						end
+					end
+					if y > - 40 and y < -5 and biome == 11 then
+						if math.random(PLANT14) == 1 then
+							data[vi] = c_dwahous
 						end
 					end
 					if not solid then -- if surface
@@ -480,6 +490,10 @@ minetest.register_on_generated(function(minp, maxp, seed)
 							if y <= sandy and y >= sandmin then
 								if biome ~= 8 then
 									data[vi] = c_sand
+								end
+							elseif y > sandy and y >= surfy - 2 then
+								if biome ~= 8 then
+									data[vi] = c_dirt
 								end
 							end
 						end

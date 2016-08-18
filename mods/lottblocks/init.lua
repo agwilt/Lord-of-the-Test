@@ -7,6 +7,8 @@ dofile(minetest.get_modpath("lottblocks").."/music.lua") --This has musical inst
 dofile(minetest.get_modpath("lottblocks").."/decoration.lua") --This has various decoration nodes, by catninja.
 dofile(minetest.get_modpath("lottblocks").."/chests.lua")
 dofile(minetest.get_modpath("lottblocks").."/lamps.lua")
+dofile(minetest.get_modpath("lottblocks").."/banners.lua")
+dofile(minetest.get_modpath("lottblocks").."/race_doors.lua")
 
 minetest.register_node("lottblocks:snowycobble", {
 	description = "Snowy Cobblestone",
