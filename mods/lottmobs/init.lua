@@ -1,4 +1,29 @@
 lottmobs = {}
+lottmobs.connected_player_names = {}
+lottmobs.player_guards = {}
+
+local file = io.open(minetest.get_worldpath().."/"..SAVEDIR.."/guard_hunger.txt", "r")
+if file then
+	lottmobs.player_guards = minetest.deserialize(file:read("*all"))
+	file:close()
+end
+
+minetest.register_on_joinplayer(function(player)
+                lottmobs.connected_player_names[player:get_player_name()] = true
+end)
+
+minetest.register_on_leaveplayer(function(player)
+                lottmobs.connected_player_names[player:get_player_name()] = nil
+end)
+
+minetest.register_globalstep(function(dtime)
+                lottmobs.do_guard_hunger(dtime)
+end)
+
+minetest.register_on_shutdown(function()
+                lottmobs.save_guard_hunger()
+end)
+
 
 dofile(minetest.get_modpath("lottmobs").."/functions.lua")
 dofile(minetest.get_modpath("lottmobs").."/craftitems.lua")
@@ -6,6 +31,7 @@ dofile(minetest.get_modpath("lottmobs").."/elves.lua")
 dofile(minetest.get_modpath("lottmobs").."/dwarves.lua")
 dofile(minetest.get_modpath("lottmobs").."/hobbits.lua")
 dofile(minetest.get_modpath("lottmobs").."/horse.lua")
+dofile(minetest.get_modpath("lottmobs").."/warg.lua")
 dofile(minetest.get_modpath("lottmobs").."/trader_goods.lua")
 dofile(minetest.get_modpath("lottmobs").."/trader.lua")
 dofile(minetest.get_modpath("lottmobs").."/special_mobs.lua")
@@ -16,8 +42,8 @@ dofile(minetest.get_modpath("lottmobs").."/animals.lua")
 
 mobs:register_mob("lottmobs:ent", {
 	type = "npc",
-        race = "ents",
-        hp_min = 50,
+	race = "ents",
+	hp_min = 50,
 	hp_max = 70,
 	collisionbox = {-0.5, 0, -0.5, 0.5, 5, 0.5},
 	textures = {
@@ -185,7 +211,7 @@ mobs:register_spawn("lottmobs:spider", {"lottmapgen:mirkwood_grass"}, 20, -10, 6
 
 mobs:register_mob("lottmobs:rohan_guard", {
         type = "npc",
-        race = "men",
+        race = "GAMEman",
 	hp_min = 20,
 	hp_max = 30,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
@@ -282,14 +308,15 @@ mobs:register_mob("lottmobs:rohan_guard", {
 	peaceful = true,
 	group_attack = true,
 	step = 1,
+	on_die = lottmobs.guard_die,
 })
 mobs:register_spawn("lottmobs:rohan_guard", {"lottmapgen:rohan_grass"}, 20, -1, 6000, 3, 31000)
 lottmobs.register_guard_craftitem("lottmobs:rohan_guard", "Rohan Guard", "lottmobs_rohan_guard_inv.png")
 
 mobs:register_mob("lottmobs:gondor_guard", {
 	type = "npc",
-        race = "men",
-        hp_min = 20,
+	race = "GAMEman",
+	hp_min = 20,
 	hp_max = 30,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
 	textures = {
@@ -401,13 +428,14 @@ mobs:register_mob("lottmobs:gondor_guard", {
 	peaceful = true,
 	group_attack = true,
 	step = 1,
+	on_die = lottmobs.guard_die,
 })
 mobs:register_spawn("lottmobs:gondor_guard", {"lottmapgen:gondor_grass"}, 20, -1, 6000, 3, 31000)
 lottmobs.register_guard_craftitem("lottmobs:gondor_guard", "Gondor Guard", "lottmobs_gondor_guard_inv.png")
 
 mobs:register_mob("lottmobs:ithilien_ranger", {
 	type = "npc",
-        race = "men",
+        race = "GAMEman",
         hp_min = 25,
 	hp_max = 40,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
@@ -500,13 +528,14 @@ mobs:register_mob("lottmobs:ithilien_ranger", {
 	peaceful = true,
 	group_attack = true,
 	step = 1,
+	on_die = lottmobs.guard_die,
 })
 mobs:register_spawn("lottmobs:ithilien_ranger", {"lottmapgen:ithilien_grass"}, 20, -1, 6000, 3, 31000)
 lottmobs.register_guard_craftitem("lottmobs:ithilien_ranger", "Ithilien Ranger", "lottmobs_ithilien_ranger_inv.png")
 
 mobs:register_mob("lottmobs:dunlending", {
         type = "npc",
-        race = "orcs",
+        race = "GAMEorc",
         hp_min = 17,
 	hp_max = 27,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
@@ -611,6 +640,7 @@ mobs:register_mob("lottmobs:dunlending", {
 		attack = "default_punch2",
 	},
 	step = 1,
+	on_die = lottmobs.guard_die,
 })
 mobs:register_spawn("lottmobs:dunlending", {"lottmapgen:dunland_grass"}, 20, -1, 6000, 3, 31000)
 lottmobs.register_guard_craftitem("lottmobs:dunlending", "Dunlending", "lottmobs_dunlending_inv.png")
@@ -619,7 +649,7 @@ local orc_armor = "lottarmor_chestplate_steel.png^lottarmor_leggings_steel.png^l
 
 mobs:register_mob("lottmobs:orc", {
 	type = "npc",
-        race = "orcs",
+        race = "GAMEorc",
         hp_min = 15,
 	hp_max = 35,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
@@ -712,6 +742,7 @@ mobs:register_mob("lottmobs:orc", {
 	peaceful = true,
 	group_attack = true,
 	step = 1,
+	on_die = lottmobs.guard_die,
 })
 mobs:register_spawn("lottmobs:orc", {"lottmapgen:mordor_stone"}, 20, -1, 500, 3, 31000)
 mobs:register_spawn("lottmobs:orc", {"default:snowblock"}, 15, -1, 8000, 3, 31000)
@@ -721,7 +752,7 @@ lottmobs.register_guard_craftitem("lottmobs:orc", "Orc Guard", "lottmobs_orc_gua
 
 mobs:register_mob("lottmobs:raiding_orc", {
 	type = "npc",
-        race = "orcs",
+        race = "GAMEorc",
         hp_min = 15,
 	hp_max = 35,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
@@ -816,72 +847,15 @@ mobs:register_mob("lottmobs:raiding_orc", {
 	peaceful = true,
 	group_attack = true,
 	step = 1,
+	on_die = lottmobs.guard_die,
 })
 mobs:register_spawn("lottmobs:raiding_orc", {"lottmapgen:ithilien_grass"}, 2, -1, 4000, 5, 31000)
 mobs:register_spawn("lottmobs:raiding_orc", {"lottmapgen:rohan_grass"}, 2, -1, 4000, 5, 31000)
 mobs:register_spawn("lottmobs:raiding_orc", {"lottmapgen:gondor_grass"}, 2, -1, 4000, 5, 31000)
 
-mobs:register_mob("lottmobs:warg", {
-	type = "npc",
-        race = "orcs",
-        hp_min = 25,
-	hp_max = 40,
-	collisionbox = {-0.7, -0.75, -0.7, 0.7, 1, 0.7},
-	visual_size = {x = 0.8, y = 0.8},
-	textures = {
-		{"lottmobs_warg.png"},
-	},
-	visual = "mesh",
-	mesh = "warg.b3d",
-	makes_footstep_sound = true,
-	walk_velocity = 2,
-	run_velocity = 5,
-	view_range = 16,
-	armor = 300,
-	drops = {
-		{name = "lottmobs:meat_raw",
-		chance = 5,
-		min = 3,
-		max = 10,},
-		{name = "lottclothes:felt_grey",
-		chance = 5,
-		min = 2,
-		max = 7,},
-	},
-	light_resistant = true,
-	drawtype = "front",
-	water_damage = 1,
-	lava_damage = 5,
-	light_damage = 0,
-	damage = 8,
-	attack_type = "dogfight", --Rather suitible name!
-	animation = {
-		speed_normal = 15,
-		speed_run = 25,
-		stand_start = 100,
-		stand_end = 260,
-		walk_start = 0,
-		walk_end = 40,
-		run_start = 40,
-		run_end = 100,
-		punch_start = 260,
-		punch_end = 290,
-	},
-        do_custom = lottmobs.do_custom_guard,
-	jump = true,
-	attacks_monsters = true,
-	peaceful = true,
-	group_attack = true,
-	step = 1,
-	sounds = {},
-})
-mobs:register_spawn("lottmobs:warg", {"lottmapgen:mordor_stone"}, 20, -1, 5000, 3, 31000)
-mobs:register_spawn("lottmobs:warg", {"default:snowblock"}, 15, -1, 7500, 3, 31000)
-mobs:register_spawn("lottmobs:warg", {"lottmapgen:angsnowblock"}, 20, -1, 5000, 5, 31000)
-
 mobs:register_mob("lottmobs:uruk_hai", {
 	type = "npc",
-        race = "orcs",
+        race = "GAMEorc",
         hp_min = 25,
 	hp_max = 40,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
@@ -973,6 +947,7 @@ mobs:register_mob("lottmobs:uruk_hai", {
 	peaceful = true,
 	group_attack = true,
 	step = 1,
+	on_die = lottmobs.guard_die,
 })
 mobs:register_spawn("lottmobs:uruk_hai", {"lottmapgen:mordor_stone"}, 15, -1, 2000, 3, 31000)
 mobs:register_spawn("lottmobs:uruk_hai", {"lottmapgen:fangorn_grass"}, 2, -1, 2000, 3, 31000)
@@ -980,7 +955,7 @@ lottmobs.register_guard_craftitem("lottmobs:uruk_hai", "Uruk Hai Guard", "lottmo
 
 mobs:register_mob("lottmobs:battle_troll", {
 	type = "npc",
-        race = "orcs",
+        race = "GAMEorc",
         hp_min = 45,
 	hp_max = 60,
 	collisionbox = {-0.7, -0.01, -0.7, 0.7, 2.6, 0.7},
@@ -1046,7 +1021,7 @@ mobs:register_mob("lottmobs:battle_troll", {
 	},
 	jump = true,
 	sounds = {
-		war_cry = "mobs_howl",
+		war_cry = "mobs_barbarian_yell1",
 		death = "mobs_howl",
 		attack = "mobs_stone_death",
 	},
@@ -1059,7 +1034,7 @@ mobs:register_spawn("lottmobs:battle_troll", {"lottmapgen:mordor_stone"}, 10, -1
 
 mobs:register_mob("lottmobs:half_troll", {
 	type = "npc",
-        race = "orcs",
+        race = "GAMEorc",
         hp_min = 20,
 	hp_max = 30,
 	collisionbox = {-0.3,-1.0,-0.3, 0.3,0.8,0.3},
@@ -1408,9 +1383,9 @@ mobs:register_mob("lottmobs:balrog", {
 	},
 	jump = true,
 	sounds = {
-		war_cry = "mobs_die_yell",
-		death = "default_death",
-		attack = "default_punch2",
+		war_cry = "mobs_howl",
+		death = "mobs_howl",
+		attack = "mobs_stone_death",
 	},
 	attacks_monsters = true,
 	peaceful = true,
@@ -1468,7 +1443,7 @@ mobs:register_spawn("lottmobs:dead_men", {"default:mossycobble"}, 2, -1, 6000, 1
 
 mobs:register_mob("lottmobs:troll", {
 	type = "npc",
-        race = "orcs",
+        race = "GAMEorc",
         hp_min = 50,
 	hp_max = 65,
 	collisionbox = {-0.7, -0.01, -0.7, 0.7, 2.6, 0.7},
@@ -1552,9 +1527,9 @@ mobs:register_mob("lottmobs:troll", {
 	},
 	jump = true,
 	sounds = {
-		war_cry = "mobs_die_yell",
-		death = "default_death",
-		attack = "default_punch2",
+		war_cry = "mobs_barbarian_yell1",
+		death = "mobs_barbarian_yell1",
+		attack = "mobs_stone_death",
 	},
 	attacks_monsters = true,
 	peaceful = true,
@@ -1582,31 +1557,43 @@ mobs:register_arrow("lottmobs:darkball", {
 			damage_groups = {fleshy=4},
 		}, vec)
 		local pos = self.object:getpos()
+                local node1def = minetest.get_node(pos)
+                local n = node1def.name
+                if minetest.registered_nodes[n].groups.no_darkball then return end
 		for dx=-1,1 do
 			for dy=-1,1 do
 				for dz=-1,1 do
 					local p = {x=pos.x+dx, y=pos.y+dy, z=pos.z+dz}
-					local n = minetest.env:get_node(pos).name
-					if minetest.registered_nodes[n].groups.flammable or math.random(1, 100) <= 30 then
-						minetest.env:set_node(p, {name="fire:basic_flame"})
-					else
-						minetest.env:remove_node(p)
-					end
+                                        local node2def = minetest.get_node(p)
+                                        local n2 = node2def.name
+                                        if not minetest.registered_nodes[n2].groups.no_darkball then
+                                                if minetest.registered_nodes[n].groups.flammable or math.random(1, 100) <= 30 then
+                                                        minetest.set_node(p, {name="fire:basic_flame"})
+                                                else
+                                                        minetest.remove_node(p)
+                                                end
+                                        end
 				end
 			end
 		end
 	end,
 	hit_node = function(self, pos, node)
+                local node1def = minetest.get_node(pos)
+                local n = node1def.name
+                if minetest.registered_nodes[n].groups.no_darkball then return end
 		for dx=-1,1 do
 			for dy=-2,1 do
 				for dz=-1,1 do
 					local p = {x=pos.x+dx, y=pos.y+dy, z=pos.z+dz}
-					local n = minetest.env:get_node(pos).name
-					if minetest.registered_nodes[n].groups.flammable or math.random(1, 100) <= 30 then
-						minetest.env:set_node(p, {name="fire:basic_flame"})
-					else
-						minetest.env:remove_node(p)
-					end
+                                        local node2def = minetest.get_node(p)
+                                        local n2 = node2def.name
+                                        if not minetest.registered_nodes[n2].groups.no_darkball then
+                                                if minetest.registered_nodes[n].groups.flammable or math.random(1, 100) <= 30 then
+                                                        minetest.set_node(p, {name="fire:basic_flame"})
+                                                else
+                                                        minetest.remove_node(p)
+                                                end
+                                        end
 				end
 			end
 		end

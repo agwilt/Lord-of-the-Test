@@ -13,10 +13,11 @@ minetest.register_chatcommand("privs", {
 				key, value = nil
 			elseif i == 1 then
 				privs = privs .. key
+				i = i + 1
 			else
 				privs = privs .. ", " .. key
+				i = i + 1
 			end
-			i = i + 1
 		end
 		return true, "Privileges of " .. param .. ": " .. privs
 	end,
@@ -66,10 +67,11 @@ minetest.register_chatcommand("grant", {
 				key, value = nil
 			elseif i == 1 then
 				privs_string = privs_string .. key
+				i = i + 1
 			else
 				privs_string = privs_string .. ", " .. key
+				i = i + 1
 			end
-			i = i + 1
 		end
 		minetest.log("action", name..' granted ' .. privs_string .. ' privileges to '.. grant_name)
 		if grant_name ~= name then
@@ -78,6 +80,58 @@ minetest.register_chatcommand("grant", {
 					.. privs_string)
 		end
 		return true, "Privileges of " .. grant_name .. ": " .. privs_string
+	end,
+})
+
+minetest.register_chatcommand("grantme", {
+	params = "<privilege>|all",
+	description = "Give privilege to yourself",
+	func = function(name, param)
+		if not minetest.check_player_privs(name, {privs=true}) and
+			not minetest.check_player_privs(name, {basic_privs=true}) then
+			return false, "Your privileges are insufficient."
+		end
+		if not param then
+			return false, "Invalid parameters (see /help grant)"
+		end
+		local grantprivs = minetest.string_to_privs(param)
+		if param == "all" then
+			grantprivs = minetest.registered_privileges
+		end
+		local privs = minetest.get_player_privs(name)
+		local privs_unknown = ""
+		for priv, _ in pairs(grantprivs) do
+			if priv ~= "interact" and priv ~= "shout" and
+					not minetest.check_player_privs(name, {privs=true}) then
+				return false, "Your privileges are insufficient."
+			end
+			if not minetest.registered_privileges[priv] then
+				privs_unknown = privs_unknown .. "Unknown privilege: " .. priv .. "\n"
+			end
+			if not priv:match("GAME", 1) then
+				privs[priv] = true
+            end
+		end
+		if privs_unknown ~= "" then
+			return false, privs_unknown
+		end
+		minetest.set_player_privs(name, privs)
+		local privs_table = minetest.get_player_privs(name)
+		local privs_string = ""
+		local i = 1
+		for key,value in pairs(privs_table) do
+			if key:match("GAME", 1) then
+				key, value = nil
+			elseif i == 1 then
+				privs_string = privs_string .. key
+				i = i + 1
+			else
+				privs_string = privs_string .. ", " .. key
+				i = i + 1
+			end
+		end
+		minetest.log("action", name ..' granted ' .. privs_string .. ' privileges to him/herself')
+		return true, "Privileges of " .. name .. ": " .. privs_string
 	end,
 })
 
@@ -126,10 +180,11 @@ minetest.register_chatcommand("revoke", {
 				key, value = nil
 			elseif i == 1 then
 				privs_string = privs_string .. key
+				i = i + 1
 			else
 				privs_string = privs_string .. ", " .. key
+				i = i + 1
 			end
-			i = i + 1
 		end
 		minetest.log("action", name..' revoked ('
 				.. privs_string

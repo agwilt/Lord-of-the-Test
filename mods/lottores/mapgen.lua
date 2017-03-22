@@ -1,5 +1,4 @@
-local mapgen_params = minetest.get_mapgen_params()
-local wl = mapgen_params.water_level
+local wl = minetest.get_mapgen_setting("water_level")
 
 minetest.register_ore({
 	ore_type       = "scatter",
@@ -120,39 +119,6 @@ minetest.register_ore({
 	clust_size     = 2,
 	y_min     = wl - 31000,
 	y_max     = wl - 301,
-})
-
-minetest.register_ore({
-	ore_type       = "scatter",
-	ore            = "lottores:blue_gem_ore",
-	wherein        = "default:stone",
-	clust_scarcity = 14*14*14,
-	clust_num_ores = 4,
-	clust_size     = 2,
-	y_min     = wl - 31000,
-	y_max     = wl - 256,
-})
-
-minetest.register_ore({
-	ore_type       = "scatter",
-	ore            = "lottores:red_gem_ore",
-	wherein        = "default:stone",
-	clust_scarcity = 14*14*14,
-	clust_num_ores = 4,
-	clust_size     = 2,
-	y_min     = wl - 31000,
-	y_max     = wl - 256,
-})
-
-minetest.register_ore({
-	ore_type       = "scatter",
-	ore            = "lottores:white_gem_ore",
-	wherein        = "default:stone",
-	clust_scarcity = 14*14*14,
-	clust_num_ores = 4,
-	clust_size     = 2,
-	y_min     = wl - 31000,
-	y_max     = wl - 256,
 })
 
 minetest.register_ore({

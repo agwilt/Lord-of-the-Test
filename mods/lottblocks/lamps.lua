@@ -44,7 +44,7 @@ function lottblocks.register_lamp(material, description, inv_texture, post1_text
 		},
 		on_place = function(itemstack, placer, pointed_thing)
 	    	local pos = pointed_thing.above;
-	    	if(minetest.env:get_node({x=pos.x, y=pos.y+1, z=pos.z}).name ~= "air") or (minetest.env:get_node({x=pos.x, y=pos.y+2, z=pos.z}).name ~= "air") then
+	    	if(minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z}).name ~= "air") or (minetest.get_node({x=pos.x, y=pos.y+2, z=pos.z}).name ~= "air") then
 	    		minetest.chat_send_player( placer:get_player_name(), 'Not enough space for lamppost to be placed' )
 	    		return;
 	    	end
@@ -273,5 +273,26 @@ minetest.register_craft({
 	recipe = {
 		{'bones:bone'},
 		{'group:stick'},
+	}
+})
+
+-- Made by lumidify - lottblocks_mithril_stonelamp.png
+-- created by modifying darkage_lamp.png
+minetest.register_node("lottblocks:mithril_stonelamp", {
+	description = "Mithril Stonelamp",
+	tiles = { "lottblocks_mithril_stonelamp.png" },
+	paramtype = "light",
+	sunlight_propagates = true,
+	light_source = LIGHT_MAX,
+	groups = {snappy=2,cracky=3,oddly_breakable_by_hand=3},
+	sounds = default.node_sound_glass_defaults(),
+})
+
+minetest.register_craft({
+	output = "lottblocks:mithril_stonelamp 2",
+	recipe = {
+		{"default:stone", "default:stone","default:stone"},
+		{"default:stone", "lottores:mithril_ingot", "default:stone"},
+		{"default:stone", "default:torch", "default:stone"},
 	}
 })

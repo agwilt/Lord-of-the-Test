@@ -1,7 +1,7 @@
 function lottmobs.register_dwarf(n, hpmin, hpmax, textures, wv, rv, damg, arm, drops, price)
     mobs:register_mob("lottmobs:dwarf" .. n, {
     	type = "npc",
-        race = "dwarves",
+        race = "GAMEdwarf",
         hp_min = hpmin,
     	hp_max = hpmax,
     	collisionbox = {-0.3,-.85,-0.3, 0.3,0.68,0.3},
@@ -49,13 +49,14 @@ function lottmobs.register_dwarf(n, hpmin, hpmax, textures, wv, rv, damg, arm, d
     	peaceful = true,
     	group_attack = true,
     	step = 1,
+	on_die = lottmobs.guard_die,
     })
     mobs:register_spawn("lottmobs:dwarf" .. n, {"default:stone"}, 15, -1, 24000, 3, -10)
     mobs:register_spawn("lottmobs:dwarf" .. n, {"lottmapgen:ironhill_grass"}, 20, -1, 18000, 3, 31000)
     lottmobs.register_guard_craftitem("lottmobs:dwarf"..n, "Dwarf Guard", "lottmobs_dwarf_guard"..n.."_inv.png")
 end
 
---Normal Dwarfs
+--Normal Dwarves
 local textures1 = {
     {"lottmobs_dwarf_1.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png"},
     {"lottmobs_dwarf_2.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png", "lottarmor_trans.png"},
@@ -95,7 +96,7 @@ local drops1 = {
 
 lottmobs.register_dwarf("", 20, 30, textures1, 2, 4, 5, 175, drops1, 30)
 
---Dwarfs with mithril armor & warhammers.
+--Dwarves with mithril armor & warhammers.
 local textures2 = {
     {"lottmobs_dwarf_1.png", "lottarmor_helmet_mithril.png^lottarmor_chestplate_mithril.png^lottarmor_leggings_mithril.png^lottarmor_boots_mithril.png^lottarmor_shield_mithril.png", "lottweapons_mithril_warhammer.png", "lottarmor_trans.png"},
     {"lottmobs_dwarf_2.png", "lottarmor_helmet_mithril.png^lottarmor_chestplate_mithril.png^lottarmor_leggings_mithril.png^lottarmor_boots_mithril.png^lottarmor_shield_mithril.png", "lottweapons_mithril_warhammer.png", "lottarmor_trans.png"},
@@ -135,7 +136,7 @@ local drops2 = {
 
 lottmobs.register_dwarf("1", 30, 40, textures2, 2.75, 3.5, 13, 75, drops2, 60)
 
---Dwarfs with steel armor & swords.
+--Dwarves with steel armor & swords.
 local textures3 = {
     {"lottmobs_dwarf_1.png", "lottarmor_helmet_steel.png^lottarmor_chestplate_steel.png^lottarmor_leggings_steel.png^lottarmor_boots_steel.png^lottarmor_shield_steel.png", "default_tool_steelsword.png", "lottarmor_trans.png"},
     {"lottmobs_dwarf_2.png", "lottarmor_helmet_steel.png^lottarmor_chestplate_steel.png^lottarmor_leggings_steel.png^lottarmor_boots_steel.png^lottarmor_shield_steel.png", "default_tool_steelsword.png", "lottarmor_trans.png"},

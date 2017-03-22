@@ -54,6 +54,7 @@ local PLANT11 = 2000
 local PLANT12 = 5000
 local PLANT13 = 10000
 local PLANT14 = 100000
+local PLANT15 = 500000
 
 -- 2D noise for temperature
 
@@ -88,14 +89,26 @@ local np_random = {
 
 -- Stuff
 lottmapgen = {}
-local mapgen_params = minetest.get_mapgen_params()
+
+local nobj_temp = nil
+local nobj_humid = nil
+local nobj_random = nil
+local nbuf_temp
+local nbuf_humid
+local nbuf_random
+local dbuf
+local p2dbuf
+
+local water_level = minetest.get_mapgen_setting("water_level")
 
 dofile(minetest.get_modpath("lottmapgen").."/nodes.lua")
 dofile(minetest.get_modpath("lottmapgen").."/functions.lua")
 
+dofile(minetest.get_modpath("lottmapgen").."/schematics.lua")
+
 -- On generated function
 minetest.register_on_generated(function(minp, maxp, seed)
-	if minp.y < (mapgen_params.water_level-1000) or minp.y > 5000 then
+	if minp.y < (water_level-1000) or minp.y > 5000 then
 		return
 	end
 
@@ -111,7 +124,8 @@ minetest.register_on_generated(function(minp, maxp, seed)
 
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
 	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
-	local data = vm:get_data()
+	local data = vm:get_data(dbuf)
+	local p2data = vm:get_param2_data(p2dbuf)
 
 	local c_air = minetest.get_content_id("air")
 	local c_ignore = minetest.get_content_id("ignore")
@@ -127,10 +141,12 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local c_clay = minetest.get_content_id("default:clay")
 	local c_stone = minetest.get_content_id("default:stone")
 	local c_desertstone = minetest.get_content_id("default:desert_stone")
+	local c_sandstone = minetest.get_content_id("default:sandstone")
 	local c_stonecopper = minetest.get_content_id("default:stone_with_copper")
 	local c_stoneiron = minetest.get_content_id("default:stone_with_iron")
 	local c_stonecoal = minetest.get_content_id("default:stone_with_coal")
-        local c_chalk = minetest.get_content_id("darkage:chalk")
+	local c_chalk = minetest.get_content_id("darkage:chalk")
+	local c_mapgen_stone = minetest.get_content_id("default:mapgen_stone")
 	local c_water = minetest.get_content_id("default:water_source")
 	local c_river_water = minetest.get_content_id("default:river_water_source")
 	local c_morwat = minetest.get_content_id("lottmapgen:blacksource")
@@ -155,30 +171,26 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local c_pilinehtar = minetest.get_content_id("lottplants:pilinehtar")
 	local c_ithilgrass = minetest.get_content_id("lottmapgen:ithilien_grass")
 	local c_melon = minetest.get_content_id("lottplants:melon_wild")
-	local c_angfort = minetest.get_content_id("lottmapgen:angmarfort")
-	local c_gonfort = minetest.get_content_id("lottmapgen:gondorfort")
-	local c_hobhole = minetest.get_content_id("lottmapgen:hobbithole")
-	local c_orcfort = minetest.get_content_id("lottmapgen:orcfort")
-	local c_malltre = minetest.get_content_id("lottmapgen:mallornhouse")
-	local c_lorhous = minetest.get_content_id("lottmapgen:lorienhouse")
-	local c_mirktre = minetest.get_content_id("lottmapgen:mirkhouse")
-	local c_rohfort = minetest.get_content_id("lottmapgen:rohanfort")
-	local c_dwahous = minetest.get_content_id("lottmapgen:dwarfhouse")
 
 	local sidelen = x1 - x0 + 1
 	local chulens = {x=sidelen, y=sidelen, z=sidelen}
 	local minposxz = {x=x0, y=z0}
 
-	local nvals_temp = minetest.get_perlin_map(np_temp, chulens):get2dMap_flat(minposxz)
-	local nvals_humid = minetest.get_perlin_map(np_humid, chulens):get2dMap_flat(minposxz)
-	local nvals_random = minetest.get_perlin_map(np_random, chulens):get2dMap_flat(minposxz)
+	nobj_temp = nobj_temp or minetest.get_perlin_map(np_temp, chulens)
+	nobj_humid = nobj_humid or minetest.get_perlin_map(np_humid, chulens)
+	nobj_random = nobj_random or minetest.get_perlin_map(np_random, chulens)
+
+	local nvals_temp = nobj_temp:get2dMap_flat(minposxz, nbuf_temp)
+	local nvals_humid = nobj_humid:get2dMap_flat(minposxz, nbuf_humid)
+	local nvals_random = nobj_random:get2dMap_flat(minposxz, nbuf_random)
+
 	local offset = math.random(5,20)
 	if biome_blend == true then
 		chulens = {x=sidelen+2*offset, y=sidelen+2*offset, z=sidelen+2*offset}
 		minposxz = {x=x0-offset, y=z0-offset }
-		nvals_temp = minetest.get_perlin_map(np_temp, chulens):get2dMap(minposxz)
-		nvals_humid = minetest.get_perlin_map(np_humid, chulens):get2dMap(minposxz)
-		nvals_random = minetest.get_perlin_map(np_random, chulens):get2dMap(minposxz)
+		nvals_temp = nobj_temp:get2dMap(minposxz)
+		nvals_humid = nobj_humid:get2dMap(minposxz)
+		nvals_random = nobj_random:get2dMap(minposxz)
 	end
 
 	local nixz = 1
@@ -194,8 +206,8 @@ minetest.register_on_generated(function(minp, maxp, seed)
 				biome = lottmapgen_biomes(biome, n_temp, n_humid, n_ran, LOTET, LOHUT, LORAN, HITET, HIHUT, HIRAN)
 			end
 
-			local sandy = (mapgen_params.water_level+2) + math.random(-1, 1) -- sandline
-			local sandmin = (mapgen_params.water_level-15) + math.random(-5, 0) -- lowest sand
+			local sandy = (water_level+2) + math.random(-1, 1) -- sandline
+			local sandmin = (water_level-15) + math.random(-5, 0) -- lowest sand
 			local open = true -- open to sky?
 			local solid = true -- solid node above?
 			local water = false -- water node above?
@@ -211,20 +223,23 @@ minetest.register_on_generated(function(minp, maxp, seed)
 				local fimadep = math.floor(6 - y / 512) + math.random(0, 1)
 				local vi = area:index(x, y, z)
 				local nodid = data[vi]
-				local viuu = area:index(x, y - 2, z)
+				local viuu = area:index(x, y - 1, z)
 				local nodiduu = data[viuu]
 				local via = area:index(x, y + 1, z)
 				local nodida = data[via]
 				if nodid == c_stone -- if stone
-                                or nodid == c_stonecopper
-                                or nodid == c_chalk
+				or nodid == c_mapgen_stone
+				or nodid == c_stonecopper
+				or nodid == c_chalk
 				or nodid == c_stoneiron
 				or nodid == c_stonecoal then
-					if y > mapgen_params.water_level-32 then
+					if y > water_level-32 then
 						if biome == 4 or biome == 12 then
 							data[vi] = c_desertstone
 						elseif biome == 8 then
 							data[vi] = c_morstone
+						elseif biome == 5 then
+							data[vi] = c_sandstone
 						elseif biome == 11 then
 							if math.random(3) == 1 then
 								data[vi] = c_stoneiron
@@ -232,8 +247,13 @@ minetest.register_on_generated(function(minp, maxp, seed)
 						end
 					end
 					if y > - 40 and y < -5 and biome == 11 then
-						if math.random(PLANT14) == 1 then
-							data[vi] = c_dwahous
+						if math.random(PLANT15) == 1 then
+							lottmapgen.enqueue_building("Dwarf House", {x=x, y=y, z=z}) -- data[vi] = c_dwahous
+						end
+					end
+					if y > - 100 and y < -50 and biome == 7 then
+						if math.random(PLANT15) == 1 then
+							lottmapgen_elf_workshop(x, y, z, area, data, p2data)
 						end
 					end
 					if not solid then -- if surface
@@ -249,26 +269,28 @@ minetest.register_on_generated(function(minp, maxp, seed)
 								end
 							elseif y <= sandy and y >= sandmin then -- sand
 								if biome ~= 8 then
-									if open and water and y == (mapgen_params.water_level-1) and biome > 4 and math.random(PAPCHA) == 2 then -- papyrus
-										lottmapgen_papyrus(x, (mapgen_params.water_level+1), z, area, data)
+									if open and water and y == (water_level-1) and biome > 4 and math.random(PAPCHA) == 2 then -- papyrus
+										lottmapgen_papyrus(x, (water_level+1), z, area, data, p2data)
 										data[vi] = c_dirt
-									elseif math.abs(n_temp) < 0.05 and y == (mapgen_params.water_level-1) then -- clay
+									elseif math.abs(n_temp) < 0.05 and y == (water_level-1) then -- clay
 										data[vi] = c_clay
-									elseif math.abs(n_temp) < 0.05 and y == (mapgen_params.water_level-5) then -- salt
+									elseif math.abs(n_temp) < 0.05 and y == (water_level-5) then -- salt
 										data[vi] = c_salt
-									elseif math.abs(n_temp) < 0.05 and y == (mapgen_params.water_level-20) then -- pearl
+									elseif math.abs(n_temp) < 0.05 and y == (water_level-20) then -- pearl
 										data[vi] = c_pearl
 									else
 										data[vi] = c_sand
 									end
 								end
-								if open and y > (mapgen_params.water_level + 4) + math.random(0, 1) and math.random(DUGCHA) == 2 and biome ~= 8 and biome ~= 7 then -- dune grass
+								if open and y > (water_level + 4) + math.random(0, 1) and math.random(DUGCHA) == 2 and biome ~= 8 and biome ~= 7 then -- dune grass
 									local vi = area:index(x, y + 1, z)
 										data[vi] = c_dryshrub
+										p2data[vi] = 42
 									end
 								elseif y <= sandmin then
 									data[vi] = c_stone
 								else -- above sandline
+									if open then
 									if biome == 1 then
 										if math.random(121) == 2 then
 											data[vi] = c_ice
@@ -302,12 +324,12 @@ minetest.register_on_generated(function(minp, maxp, seed)
 									elseif biome == 13 then
 										data[vi] = c_shiregrass
 									end
-								if open then -- if open to sky then flora
 									local y = surfy + 1
 									local vi = area:index(x, y, z)
 									if biome == 1 then
 										if math.random(PLANT3) == 2 then
 											data[vi] = c_dryshrub
+											p2data[vi] = 42
 										elseif math.random(TREE10) == 2 then
 											lottmapgen_beechtree(x, y, z, area, data)
 										elseif math.random(TREE7) == 3 then
@@ -316,14 +338,16 @@ minetest.register_on_generated(function(minp, maxp, seed)
 											lottmapgen_firtree(x, y, z, area, data)
 										elseif math.random(PLANT6) == 2 then
 											data[vi] = c_seregon
+											p2data[vi] = 40
 										elseif math.random(PLANT13) == 13 then
-											data[vi] = c_angfort
+											lottmapgen.enqueue_building("Angmar Fort", {x=x, y=y, z=z}) -- data[vi] = c_angfort
 										end
 									elseif biome == 2 then
 										data[vi] = c_snowblock
 									elseif biome == 3 then
 										if math.random(PLANT3) == 2 then
 											data[vi] = c_dryshrub
+											p2data[vi] = 42
 										elseif math.random(TREE10) == 2 then
 											lottmapgen_beechtree(x, y, z, area, data)
 										elseif math.random(TREE4) == 3 then
@@ -337,7 +361,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 										elseif math.random(TREE7) == 3 then
 											lottmapgen_appletree(x, y, z, area, data)
 										elseif math.random (PLANT3) == 4 then
-											lottmapgen_grass(data, vi)
+											lottmapgen_grass(data, vi, p2data)
 										end
 									elseif biome == 5 then
 										if math.random(TREE7) == 2 then
@@ -353,15 +377,16 @@ minetest.register_on_generated(function(minp, maxp, seed)
 										elseif math.random(PLANT13) == 10 then
 											lottmapgen_whitetree(x, y, z, area, data)
 										elseif math.random(PLANT3) == 5 then
-											lottmapgen_grass(data, vi)
+											lottmapgen_grass(data, vi, p2data)
 										elseif math.random(PLANT8) == 7 then
-											lottmapgen_farmingplants(data, vi)
+											lottmapgen_farmingplants(data, vi, p2data)
 										elseif math.random(PLANT13) == 8 then
-											lottmapgen_farmingrareplants(data, vi)
+											lottmapgen_farmingrareplants(data, vi, p2data)
 										elseif math.random(PLANT6) == 2 then
 											data[vi] = c_mallos
+											p2data[vi] = 42
 										elseif math.random(PLANT13) == 13 then
-											data[vi] = c_gonfort
+											lottmapgen.enqueue_building("Gondor Fort", {x=x, y=y, z=z})
 										end
 									elseif biome == 6 then
 										if math.random(TREE3) == 2 then
@@ -377,11 +402,11 @@ minetest.register_on_generated(function(minp, maxp, seed)
 										elseif math.random(TREE9) == 9 then
 											lottmapgen_elmtree(x, y, z, area, data)
 										elseif math.random(PLANT8) == 7 then
-											lottmapgen_farmingplants(data, vi)
+											lottmapgen_farmingplants(data, vi, p2data)
 										elseif math.random(PLANT13) == 8 then
 											data[vi] = c_melon
 										elseif math.random(PLANT5) == 11 then
-											lottmapgen_ithildinplants(data, vi)
+											lottmapgen_ithildinplants(data, vi, p2data)
 										end
 									elseif biome == 7 then
 										if math.random(TREE3) == 2 then
@@ -389,16 +414,16 @@ minetest.register_on_generated(function(minp, maxp, seed)
 										elseif math.random(TREE2) == 2 then
 											lottmapgen_young_mallorn(x, y, z, area, data)
 										elseif math.random(PLANT1) == 2 then
-											lottmapgen_lorien_grass(data, vi)
+											lottmapgen_lorien_grass(data, vi, p2data)
 										elseif math.random(TREE5) == 3 then
 											lottmapgen_mallorntree(x, y, z, area, data)
 										elseif math.random(PLANT4) == 11 then
-											lottmapgen_lorienplants(data, vi)
+											lottmapgen_lorienplants(data, vi, p2data)
 										elseif math.random(PLANT13) == 13 then
 											if math.random(1, 2) == 1 then
-												data[vi] = c_malltre
+												lottmapgen.enqueue_building("Mallorn House", {x=x, y=y, z=z})
 											else
-												data[vi] = c_lorhous
+												lottmapgen.enqueue_building("Lorien House", {x=x, y=y, z=z})
 											end
 										end
 									elseif biome == 8 then
@@ -406,8 +431,9 @@ minetest.register_on_generated(function(minp, maxp, seed)
 											lottmapgen_burnedtree(x, y, z, area, data)
 										elseif math.random(PLANT4) == 2 then
 											data[vi] = c_bomordor
+											p2data[vi] = 42
 										elseif math.random(PLANT13) == 13 then
-											data[vi] = c_orcfort
+											lottmapgen.enqueue_building("Orc Fort", {x=x, y=y, z=z})
 										end
 									elseif biome == 9 then
 										if math.random(TREE3) == 2 then
@@ -425,7 +451,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 										elseif math.random(TREE6) == 11 then
 											lottmapgen_oaktree(x, y, z, area, data)
 										elseif math.random(PLANT4) == 7 then
-											lottmapgen_farmingplants(data, vi)
+											lottmapgen_farmingplants(data, vi, p2data)
 										elseif math.random(PLANT9) == 8 then
 											data[vi] = c_melon
 										end
@@ -435,7 +461,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 										elseif math.random(TREE2) == 3 then
 											lottmapgen_jungletree2(x, y, z, area, data)
 										elseif math.random(PLANT13) == 13 then
-											data[vi] = c_mirktre
+											data[vi] = lottmapgen.enqueue_building("Mirkwood House", {x=x, y=y, z=z})
 										end
 									elseif biome == 11 then
 										if math.random(TREE10) == 2 then
@@ -455,15 +481,16 @@ minetest.register_on_generated(function(minp, maxp, seed)
 										elseif math.random(TREE10) == 9 then
 											lottmapgen_elmtree(x, y, z, area, data)
 										elseif math.random(PLANT2) == 5 then
-											lottmapgen_grass(data, vi)
+											lottmapgen_grass(data, vi, p2data)
 										elseif math.random(PLANT8) == 6 then
-											lottmapgen_farmingplants(data, vi)
+											lottmapgen_farmingplants(data, vi, p2data)
 										elseif math.random(PLANT13) == 7 then
 											data[vi] = c_melon
 										elseif math.random(PLANT6) == 2 then
 											data[vi] = c_pilinehtar
+											p2data[vi] = 2
 										elseif math.random(PLANT13) == 13 then
-											data[vi] = c_rohfort
+											lottmapgen.enqueue_building("Rohan Fort", {x=x, y=y, z=z})
 										end
 									elseif biome == 13 then
 										if math.random(TREE7) == 2 then
@@ -475,11 +502,11 @@ minetest.register_on_generated(function(minp, maxp, seed)
 										elseif math.random(TREE7) == 9 then
 											lottmapgen_oaktree(x, y, z, area, data)
 										elseif math.random(PLANT7) == 7 then
-											lottmapgen_farmingplants(data, vi)
+											lottmapgen_farmingplants(data, vi, p2data)
 										elseif math.random(PLANT9) == 8 then
 											data[vi] = c_melon
 										elseif math.random(PLANT13) == 13 then
-											data[vi] = c_hobhole
+											lottmapgen.enqueue_building("Hobbit Hole", {x=x, y=y, z=z})
 										end
 									end
 								end
@@ -511,7 +538,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 								data[vi] = c_morwat
 							end
 						end
-						if n_temp < ICETET and y >= mapgen_params.water_level - math.floor((ICETET - n_temp) * 10) then --ice
+						if n_temp < ICETET and y >= water_level - math.floor((ICETET - n_temp) * 10) then --ice
 							data[vi] = c_ice
 						end
 					end
@@ -521,12 +548,12 @@ minetest.register_on_generated(function(minp, maxp, seed)
 		end
 	end
 	vm:set_data(data)
+	vm:set_param2_data(p2data)
 	vm:set_lighting({day=0, night=0})
 	vm:calc_lighting()
 	vm:write_to_map(data)
 	local chugent = math.ceil((os.clock() - t1) * 1000)
 end)
 
-dofile(minetest.get_modpath("lottmapgen").."/schematics.lua")
 dofile(minetest.get_modpath("lottmapgen").."/deco.lua")
 dofile(minetest.get_modpath("lottmapgen").."/chests.lua")

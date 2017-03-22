@@ -105,6 +105,10 @@ armor = {
 	version = "0.4.4",
 }
 
+if minetest.setting_getbool("creative_mode") then
+	armor.formspec = armor.formspec .. "tabheader[-0.12,-0.12;creative_tabs;Main,Creative;1;true;false"
+end
+
 local get_formspec = function(player,page)
 	if page=="bags" then
 		return "size[8,7.5]"
@@ -113,7 +117,7 @@ local get_formspec = function(player,page)
 			.."button[0,2;2,0.5;bag1;Bag 1]"
 			.."button[2,2;2,0.5;bag2;Bag 2]"
 			.."button[4,2;2,0.5;bag3;Bag 3]"
-			.."button[6,2;2,0.5;bag4;Bag 4]"
+			.."button[6,2;2,0.5;bag4;Food Bag]"
 			.."list[detached:"..player:get_player_name().."_bags;bag1;0.5,1;1,1;]"
 			.."list[detached:"..player:get_player_name().."_bags;bag2;2.5,1;1,1;]"
 			.."list[detached:"..player:get_player_name().."_bags;bag3;4.5,1;1,1;]"
@@ -129,6 +133,7 @@ local get_formspec = function(player,page)
 				.."button[2,0;2,0.5;bags;Bags]"
 				.."image[7,0;1,1;"..image.."]"
 				.."list[current_player;bag"..i.."contents;0,1;8,3;]"
+				.."listring[]"
                 .."background[5,5;1,1;gui_formbg.png;true]"
 		end
 	end
@@ -465,7 +470,7 @@ minetest.register_on_joinplayer(function(player)
 		allow_move = function(inv, from_list, from_index, to_list, to_index, count, player)
 			return 0
 		end,
-	})
+	}, name)
 	if inv_mod == "inventory_plus" then
 		inventory_plus.register_button(player,"armor", "Armor")
 	end
@@ -477,7 +482,8 @@ minetest.register_on_joinplayer(function(player)
 	end
 
 	--Bags
-     local bags_inv = minetest.create_detached_inventory(player:get_player_name().."_bags",{
+	local name = player:get_player_name()
+     local bags_inv = minetest.create_detached_inventory(name.."_bags",{
 		on_put = function(inv, listname, index, stack, player)
 			player:get_inventory():set_stack(listname, index, stack)
 			player:get_inventory():set_size(listname.."contents", stack:get_definition().groups.bagslots)
@@ -502,7 +508,7 @@ minetest.register_on_joinplayer(function(player)
 		allow_move = function(inv, from_list, from_index, to_list, to_index, count, player)
 			return 0
 		end,
-	})
+	}, name)
 	for i=1,4 do
 		local bag = "bag"..i
 		player_inv:set_size(bag, 1)
@@ -528,7 +534,7 @@ minetest.register_on_joinplayer(function(player)
 	for i=1, ARMOR_INIT_TIMES do
 		minetest.after(ARMOR_INIT_DELAY * i, function(player)
 			armor:set_player_armor(player)
-			if not inv_mod then
+			if not inv_mod and not minetest.setting_getbool("creative_mode") then
 				armor:update_inventory(player)
 			end
 		end, player)
@@ -544,7 +550,7 @@ if ARMOR_DROP == true or ARMOR_DESTROY == true then
 	end
 	minetest.register_on_dieplayer(function(player)
 		local name, player_inv, armor_inv, pos = armor:get_valid_player(player, "[on_dieplayer]")
-		if not name then
+		if not name or minetest.setting_getbool("creative_mode") == true then
 			return
 		end
 		local drop = {}

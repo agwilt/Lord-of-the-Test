@@ -1,4 +1,7 @@
-dofile(minetest.get_modpath("lottother").."/rings.lua")
+dofile(minetest.get_modpath("lottother").."/rings/rings.lua")
+dofile(minetest.get_modpath("lottother").."/rings/gems.lua")
+dofile(minetest.get_modpath("lottother").."/rings/ringsilver.lua")
+dofile(minetest.get_modpath("lottother").."/rings/ringcraft.lua")
 dofile(minetest.get_modpath("lottother").."/mob_spawners.lua")
 dofile(minetest.get_modpath("lottother").."/credits.lua")
 
@@ -91,7 +94,7 @@ function lottother.find_pos_for_flame_around(pos)
 end
 
 function lottother.flame_should_extinguish(pos)
-	if minetest.setting_getbool("disable_lottother") then return true end
+	if minetest.setting_getbool("disable_fire") then return true end
 	local p0 = {x=pos.x-2, y=pos.y, z=pos.z-2}
 	local p1 = {x=pos.x+2, y=pos.y, z=pos.z+2}
 	local ps = minetest.find_nodes_in_area(p0, p1, {"group:puts_out_lottother"})
@@ -165,7 +168,7 @@ minetest.register_abm({
 					return
 				end
 				minetest.remove_node(p)
-				nodeupdate(p)
+				minetest.check_for_falling(p)
 			end
 		else
 			minetest.remove_node(p0)
@@ -209,13 +212,18 @@ minetest.register_node("lottother:stone", {
 	description = "Stone Substitute",
 	tiles = {"default_stone.png"},
 	is_ground_content = true,
-	drop = 'default:stone',
+	drop = 'default:cobble',
 	groups = {cracky=3, stone=1, not_in_creative_inventory=1},
 	sounds = default.node_sound_stone_defaults(),
 	on_construct = function(pos)
 		local found_air = 0
 		local y = 0
 		for h = 1, 50 do
+			if minetest.get_node({x = pos.x, y = pos.y + h, z = pos.z}).name == "air" then
+				found_air = found_air + 1
+			elseif minetest.get_node({x = pos.x, y = pos.y + h + 4, z = pos.z}).name == "default:water_source" then
+				return
+			end
 			for i = -1, 1 do
 			for j = -3, -1 do
 				local p = {x = pos.x + i, y = pos.y + h, z = pos.z + j}
@@ -229,9 +237,6 @@ minetest.register_node("lottother:stone", {
 					minetest.remove_node(p)
 				end
 			end
-			end
-			if minetest.get_node({x = pos.x, y = pos.y + h, z = pos.z}).name == "air" then
-				found_air = found_air + 1
 			end
 			if found_air > 3 then
 				y = h
@@ -279,6 +284,7 @@ minetest.register_node("lottother:air", {
      pointable = false,
 	groups = {not_in_creative_inventory=1,dig_immediate=3},
 	sounds = default.node_sound_glass_defaults(),
+	drop = "",
 })
 
 minetest.register_abm({
@@ -412,6 +418,6 @@ minetest.register_abm({
 	interval = 7,
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
-		minetest.env:remove_node(pos)
+		minetest.remove_node(pos)
 	end,
 })

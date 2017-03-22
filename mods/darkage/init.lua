@@ -61,16 +61,16 @@ minetest.register_craft({
 minetest.register_craft({
 	output = "darkage:cobble_with_plaster 2",
 	recipe = {
-		{"default:cobble", "darkage:chalk_powder"},
-		{"default:cobble", "darkage:chalk_powder"},
+		{"darkage:chalk_powder", "default:cobble"},
+		{"darkage:chalk_powder", "default:cobble"},
 	}
 })
 
 minetest.register_craft({
-	output = "darkage:cobble_with_plaster 2",
+	output = "darkage:stonebrick_with_plaster 2",
 	recipe = {
-		{"darkage:chalk_powder", "default:cobble"},
-		{"darkage:chalk_powder", "default:cobble"},
+		{"darkage:chalk_powder", "default:stonebrick"},
+		{"darkage:chalk_powder", "default:stonebrick"},
 	}
 })
 
@@ -129,16 +129,6 @@ minetest.register_craft({
 		{"darkage:slate_cobble", "darkage:slate_cobble"},
 	}
 })
-
-minetest.register_craft({
-	output = "darkage:stone_brick 9",
-	recipe = {
-		{"default:cobble","default:cobble","default:cobble"},
-		{"default:cobble","default:cobble","default:cobble"},
-		{"default:cobble","default:cobble","default:cobble"},
-	}
-})
-
 
 minetest.register_craft({
 	output = "darkage:straw_bale",
@@ -215,14 +205,6 @@ minetest.register_craft({
 	type = "cooking",
 	output = "darkage:ors_cobble",
 	recipe = "default:desert_stone",
-})
-
-minetest.register_craft({
-	output = "default:desert_stone 2",
-	recipe = {
-		{"default:desert_sand", "default:desert_sand"},
-		{"default:desert_sand", "default:desert_sand"},
-	}
 })
 
 -- Tuff

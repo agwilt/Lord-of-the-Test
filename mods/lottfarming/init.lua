@@ -1,6 +1,6 @@
 farming = {}
 
-function place_seed(itemstack, placer, pointed_thing, plantname)
+function place_seed(itemstack, placer, pointed_thing, plantname, param2)
 	local pt = pointed_thing
 	if not pt then
 		return
@@ -25,14 +25,14 @@ function place_seed(itemstack, placer, pointed_thing, plantname)
 	if minetest.get_item_group(under.name, "soil") <= 1 then
 		return
 	end
-	minetest.add_node(pt.above, {name=plantname})
+	minetest.add_node(pt.above, {name=plantname, param2=param2})
 	if not minetest.setting_getbool("creative_mode") then
 		itemstack:take_item()
 	end
 	return itemstack
 end
 
-function place_spore(itemstack, placer, pointed_thing, plantname)
+function place_spore(itemstack, placer, pointed_thing, plantname, p2)
 	local pt = pointed_thing
 	if not pt then
 		return
@@ -57,7 +57,7 @@ function place_spore(itemstack, placer, pointed_thing, plantname)
 	if minetest.get_item_group(under.name, "fungi") <= 1 then
 		return
 	end
-	minetest.add_node(pt.above, {name=plantname})
+	minetest.add_node(pt.above, {name=plantname, param2 = p2})
 	if not minetest.setting_getbool("creative_mode") then
 		itemstack:take_item()
 	end
@@ -106,40 +106,41 @@ function farming.hoe_on_use(itemstack, user, pointed_thing, uses)
 	return itemstack
 end
 
-function farming:add_plant(full_grown, names, interval, chance)
+function farming:add_plant(full_grown, names, interval, chance, p2)
 	minetest.register_abm({
 		nodenames = names,
 		interval = interval,
 		chance = chance,
 		action = function(pos, node)
 			pos.y = pos.y-1
-			if minetest.env:get_node(pos).name ~= "farming:soil_wet" then
+			if minetest.get_node(pos).name ~= "farming:soil_wet" then
 				return
 			end
 			pos.y = pos.y+1
-			if not minetest.env:get_node_light(pos) then
+			local light_level = minetest.get_node_light(pos)
+			if not light_level then
 				return
 			end
-			if minetest.env:get_node_light(pos) < 8 then
-				return
-			end
-			local step = nil
-			for i,name in ipairs(names) do
-				if name == node.name then
-					step = i
-					break
+			local c = math.ceil(2 * (light_level - 13) ^ 2 + 1)
+			if light_level > 7 and (math.random(1, c) == 1 or light_level >= 13) then
+				local step
+				for i,name in ipairs(names) do
+					if name == node.name then
+						step = i
+						break
+					end
 				end
+				if not step then
+					return
+				end
+				local new_node = {name=names[step+1], param2=p2}
+				if new_node.name == nil then
+					new_node.name = full_grown
+				end
+				minetest.set_node(pos, new_node)
 			end
-			if step == nil then
-				return
-			end
-			local new_node = {name=names[step+1]}
-			if new_node.name == nil then
-				new_node.name = full_grown
-			end
-			minetest.env:set_node(pos, new_node)
 		end
-}	)
+})
 end
 
 -- ========= CORN =========

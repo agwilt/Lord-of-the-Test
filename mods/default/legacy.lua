@@ -143,6 +143,12 @@ minetest.register_alias("default:diamond", "default:mese_crystal")
 minetest.register_alias("default:stone_with_diamond", "default:stone_with_mese")
 minetest.register_alias("default:diamondblock", "default:mese")
 
+minetest.register_alias("default:fence_wood", "lottblocks:fence_wood")
+minetest.register_alias("default:ladder", "lottblocks:ladder_wood")
+
+minetest.register_alias("defualt:nyancat", "lottores:mithril_block")
+minetest.register_alias("default:nyancat_rainbow", "lottores:galvorn_block")
+
 gaurds = {"dwarven", "elven", "gondor", "orc", "rohan", "uruk_hai"}
 for i, v in pairs(gaurds) do
     minetest.register_alias("lottnpc:" .. v .. "_guard_spawner", "default:rdirt")

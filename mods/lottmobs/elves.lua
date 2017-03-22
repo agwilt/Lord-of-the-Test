@@ -1,7 +1,7 @@
 function lottmobs.register_elf(n, hpmin, hpmax, textures, wv, rv, damg, arm, drops, price)
 	mobs:register_mob("lottmobs:elf" .. n, {
 		type = "npc",
-                race = "elves",
+                race = "GAMEelf",
                 hp_min = hpmin,
 		hp_max = hpmax,
 		collisionbox = {-0.3,-1.1,-0.3, 0.3,0.91,0.3},
@@ -48,6 +48,7 @@ function lottmobs.register_elf(n, hpmin, hpmax, textures, wv, rv, damg, arm, dro
 		peaceful = true,
 		group_attack = true,
 		step = 1,
+		on_die = lottmobs.guard_die,
 	})
 	mobs:register_spawn("lottmobs:elf" .. n, {"lottmapgen:lorien_grass"}, 20, 0, 18000, 3, 31000)
         lottmobs.register_guard_craftitem("lottmobs:elf"..n, "Elven Guard", "lottmobs_elven_guard"..n.."_inv.png")
@@ -159,7 +160,7 @@ local drops2 = {
 
 lottmobs.register_elf(1, 20, 35, textures2, 2, 4.5, 6, 100, drops2, 50)
 
---Evels with chestplates and powerfull weapons!
+--Elves with chestplates and powerful weapons!
 
 local textures3 = {
     {"lottmobs_lorien_elf_1.png", "lottarmor_chestplate_galvorn.png", "lottweapons_elven_sword.png", "lottarmor_trans.png"},

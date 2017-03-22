@@ -48,21 +48,21 @@ local npc_guard_attack = function(self)
                                 npc_race = obj.race
                         end
                 end
-                
+
                 if entity_type == "player" or entity_type == "npc" or entity_type == "monster" then
-                        
+
                         s = self.object:getpos()
                         p = player:getpos()
                         sp = s
-                        
+
                         -- aim higher to make looking up hills more realistic
                         p.y = p.y + 1
                         sp.y = sp.y + 1
-                        
+
                         dist = get_distance(p, s)
-                        
+
                         if dist < self.view_range then
-                                
+
                                 -- choose closest player to attack
                                 if line_of_sight_water(self, sp, p, 2) == true
                                 and dist < min_dist then
@@ -71,22 +71,18 @@ local npc_guard_attack = function(self)
                                         and self.whitelist
                                         and not value_in_table(self.whitelist, player:get_player_name()) then
                                                 local player_privs = minetest.get_player_privs(player:get_player_name())
-                                                if (self.attack_player_elves and player_privs.GAMEelf)
-                                                or (self.attack_player_men and player_privs.GAMEman)
-                                                or (self.attack_player_orcs and player_privs.GAMEorc)
-                                                or (self.attack_player_hobbits and player_privs.GAMEhobbit)
-                                                or (self.attack_player_dwarves and player_privs.GAMEdwarf)
+                                                if (self.attack_player_GAMEelf and player_privs.GAMEelf)
+                                                or (self.attack_player_GAMEman and player_privs.GAMEman)
+                                                or (self.attack_player_GAMEorc and player_privs.GAMEorc)
+                                                or (self.attack_player_GAMEhobbit and player_privs.GAMEhobbit)
+                                                or (self.attack_player_GAMEdwarf and player_privs.GAMEdwarf)
                                                 or (self.blacklist
                                                 and value_in_table(self.blacklist, player:get_player_name())) then
                                                             min_dist = dist
                                                             min_player = player
                                                 end
                                         elseif entity_type == "npc" and npc_race ~= "ents" and self.race ~= npc_race then
-                                                if (self.attack_npc_elves and npc_race == "elves")
-                                                or (self.attack_npc_men and npc_race == "men")
-                                                or (self.attack_npc_orcs and npc_race == "orcs")
-                                                or (self.attack_npc_hobbits and npc_race == "hobbits")
-                                                or (self.attack_npc_dwarves and npc_race == "dwarves") then
+                                                if (self["attack_npc_"..npc_race]) then
                                                         min_dist = dist
                                                         min_player = player
                                                 end
@@ -98,7 +94,7 @@ local npc_guard_attack = function(self)
                         end
                 end
         end
-        
+
         -- attack player
         if min_player then
                 do_attack(self, min_player)
@@ -128,7 +124,7 @@ local npc_attack = function(self)
 				player = obj.object
 				entity_type = obj.type
                                 npc_race = obj.race
-			end                                
+			end
                 end
 
                 if entity_type == "player" or entity_type == "npc" or entity_type == "monster" then
@@ -168,7 +164,82 @@ local npc_attack = function(self)
         end
         if min_player then
                 do_attack(self, min_player)
-        end        
+        end
+end
+
+local guard_foods = {
+        ["lottfarming:corn"] = 5,
+        ["farming:bread"] = 10
+}
+
+lottmobs.save_guard_hunger = function()
+        minetest.mkdir(minetest.get_worldpath().."/"..SAVEDIR)
+	local file = io.open(minetest.get_worldpath().."/"..SAVEDIR.."/guard_hunger.txt", "w")
+	if file then
+		file:write(minetest.serialize(lottmobs.player_guards))
+		file:close()
+	end
+end
+
+lottmobs.do_guard_hunger = function(dtime)
+        for player, bool in pairs(lottmobs.connected_player_names) do
+                if lottmobs.player_guards[player] then
+                        for name, hunger_def in pairs(lottmobs.player_guards[player]) do
+                                lottmobs.guard_eat(hunger_def, player, name, dtime)
+                        end
+                end
+        end
+end
+
+lottmobs.guard_eat_active = function(self)
+        if lottmobs.player_guards[self.owner] then
+                local hunger_def = lottmobs.player_guards[self.owner][self.game_name]
+                if hunger_def then
+                        self.health = self.health + (hunger_def.health - hunger_def.last_active_health)
+                        hunger_def.last_active_health = self.health
+                        hunger_def.health = self.health
+                        self.object:set_hp(self.health)
+                        return
+                end
+        end
+        self.health = 0
+        self.object:set_hp(self.health)
+end
+
+lottmobs.guard_eat = function(self, owner, name, dtime)
+        if self.health <= 0 then
+                lottmobs.player_guards[owner][name] = nil
+                lottmobs.save_guard_hunger()
+        end
+        self.eat_timer = self.eat_timer + dtime
+        self.timer = self.timer + dtime
+        if self.eat_timer >= 60 then
+                self.food_level = self.food_level - 1
+                self.eat_timer = 0
+        end
+        if self.food_level <= 0 and self.timer >= 1 then
+                self.timer = 0
+                local food_inv = minetest.get_inventory({type="player", name=owner})
+                if food_inv then
+                        for food, eat_value in pairs(guard_foods) do
+                                local taken = food_inv:remove_item("bag4contents", ItemStack(food.." 1"))
+                                self.food_level = self.food_level + taken:get_count() * eat_value
+                                if self.food_level > 1 then
+                                        break
+                                end
+                        end
+                end
+                if self.food_level <= 0 then
+                        self.health = self.health - 1
+                end
+        end
+end
+
+lottmobs.guard_die = function(self, pos)
+	if self.owner and self.owner ~= "" then
+		lottmobs.player_guards[self.owner][self.game_name] = nil
+		lottmobs.save_guard_hunger()
+	end
 end
 
 lottmobs.do_custom_guard = function(self, dtime)
@@ -214,11 +285,12 @@ lottmobs.do_custom_guard = function(self, dtime)
 		do_env_damage(self)
 	end
 	if self.owner and self.owner ~= "" then
+                lottmobs.guard_eat_active(self)
                 npc_guard_attack(self)
         else
                 npc_attack(self)
 	end
-        
+
 	mobs.follow_flop(self)
 	mobs.do_states(self, dtime)
         return false
@@ -244,7 +316,7 @@ local get_guard_formspec = function(self)
 	if self.blacklist == nil then
 		self.blacklist = {}
 	end
-        
+
         if self.order == "stand" then selected_idx = 2 end
         local formspec = "size[10,11]"..
                 "label[1,1;Name:\t"..self.game_name.."]"..
@@ -261,7 +333,7 @@ local get_guard_formspec = function(self)
                         end
                         formspec = formspec..
                                 "checkbox["..checkbox_pos[j]..";attack_npc_"..lottclasses.races[i]..";"..
-                                lottclasses.races_pretty[i].." NPCs;"..tostring(attack_race).."]"
+                                lottclasses.races_prefix[i].." NPCs;"..tostring(attack_race).."]"
                         j = j + 1
                 end
         end
@@ -273,7 +345,7 @@ local get_guard_formspec = function(self)
                 end
                 formspec = formspec..
                         "checkbox["..checkbox_pos[j]..";attack_player_"..lottclasses.races[i]..";"..
-                        lottclasses.races_pretty[i].." Players;"..tostring(attack_race).."]"
+                        lottclasses.races_prefix[i].." Players;"..tostring(attack_race).."]"
                 j = j + 1
         end
         formspec = formspec..
@@ -323,11 +395,6 @@ lottmobs.guard = function(self, clicker, payment, mob_name, race, price)
                         self.blacklist = split(fields.blacklist, ";")
                 end
 	end
-        lottmobs.name = function(name)
-                self.game_name = name
-                self.nametag = name
-                update_tag(self)
-        end        
 	local item = clicker:get_wielded_item()
 	local name = clicker:get_player_name()
 	if item:get_name() == "lottfarming:corn"
@@ -379,13 +446,9 @@ lottmobs.guard = function(self, clicker, payment, mob_name, race, price)
 			end
 		end
 	elseif self.owner and self.owner == name then
-                if self.game_name == "mob" then
-                        minetest.show_formspec(name, "mob_naming", "field[naming;Name your guard:;")
-                else
-                        minetest.show_formspec(name, "mob_settings", get_guard_formspec(self))
-                end
+                minetest.show_formspec(name, "mob_settings", get_guard_formspec(self))
 	else
-                if guard_friendly(self, clicker) then
+                if lottclasses.player_same_race_or_ally(clicker, self.race) then
                         if self.game_name == "mob" then
                                 self.game_name = lottmobs[race]["names"][math.random(1, #lottmobs[race]["names"])]
                         end
@@ -421,16 +484,37 @@ lottmobs.register_guard_craftitem = function(name, description, inventory_image)
                                             inventory_image = inventory_image,
                                             on_place = function(itemstack, placer, pointed_thing)
                                                     if pointed_thing.above then
-                                                            local pos = pointed_thing.above
-                                                            pos.y = pos.y + 1
-                                                            local obj = minetest.env:add_entity(pos, name):get_luaentity()
-                                                            if not minetest.setting_getbool("creative_mode") then
-                                                                    itemstack:take_item()
+                                                            local owner = placer:get_player_name()
+                                                            if not lottmobs.player_guards[owner] then
+                                                                    lottmobs.player_guards[owner] = {}
                                                             end
-                                                            obj.tamed = true
-                                                            obj.owner = placer:get_player_name()
-                                                            obj.order = "follow"
-                                                            obj.on_rightclick(obj, placer)
+                                                            local add_guard = function(game_name)
+                                                                    local pos = pointed_thing.above
+                                                                    pos.y = pos.y + 1
+                                                                    if not minetest.setting_getbool("creative_mode") then
+                                                                            itemstack:take_item()
+                                                                    end
+                                                                    local obj = minetest.add_entity(pos, name):get_luaentity()
+                                                                    obj.game_name = game_name
+                                                                    obj.nametag = game_name
+                                                                    update_tag(obj)
+                                                                    obj.tamed = true
+                                                                    obj.owner = owner
+                                                                    obj.order = "follow"
+                                                                    obj.eat_timer = 0
+                                                                    obj.food_level = 20
+                                                                    return obj
+                                                            end
+                                                            lottmobs.name = function(name)
+                                                                    if name and name ~= "" and not lottmobs.player_guards[owner][name] then
+                                                                            local obj = add_guard(name)
+                                                                            lottmobs.player_guards[owner][name] = {food_level = 20, health = obj.health, eat_timer = 0, timer = 0, last_active_health = obj.health}
+                                                                            lottmobs.save_guard_hunger()
+                                                                    else
+                                                                            minetest.show_formspec(owner, "mob_naming", "field[naming;Name your guard:;")
+                                                                    end
+                                                            end
+                                                            minetest.show_formspec(owner, "mob_naming", "field[naming;Name your guard:;")
                                                     end
                                                     return itemstack
                                             end

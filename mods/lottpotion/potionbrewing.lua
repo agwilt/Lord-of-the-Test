@@ -89,13 +89,13 @@ local function register_recipe(typename, data)
 	else
 		data.output = ItemStack(data.output):to_string()
 	end
-	
+
 	local recipe = {time = data.time, input = {}, output = data.output}
 	local index = get_recipe_index(data.input)
 	for _, stack in ipairs(data.input) do
 		recipe.input[ItemStack(stack):get_name()] = ItemStack(stack):get_count()
 	end
-	
+
 	lottpotion.potion_recipes[typename].recipes[index] = recipe
 end
 
@@ -150,7 +150,7 @@ end
 
 local recipes = {
 --Base Potion
-	{"lottplants:seregon_fake",        "lottpotion:glass_bottle_water",         "lottpotion:glass_bottle_seregon"},
+	{"lottplants:seregon",        "lottpotion:glass_bottle_water",         "lottpotion:glass_bottle_seregon"},
      {"default:mese_crystal_fragment 1",        "lottpotion:glass_bottle_water",         "lottpotion:glass_bottle_mese"},
      {"lottores:geodes_crystal_1",        "lottpotion:glass_bottle_water",         "lottpotion:glass_bottle_geodes"},
 --Potions
@@ -198,6 +198,8 @@ local formspec =
 	"list[current_name;src;1,2;2,1;]"..
      "label[6,1.5;Result:]"..
 	"list[current_name;dst;6,2;1,1;]"..
+	"listring[current_name;src]"..
+	"listring[current_player;main]"..
 	"list[current_player;main;0,5;8,4;]"
 
 minetest.register_node("lottpotion:potion_brewer", {
@@ -216,7 +218,7 @@ minetest.register_node("lottpotion:potion_brewer", {
 	groups = {cracky=2},
 	sounds = default.node_sound_stone_defaults(),
 	on_construct = function(pos)
-		local meta = minetest.env:get_meta(pos)
+		local meta = minetest.get_meta(pos)
 		meta:set_string("formspec", formspec)
 		meta:set_string("infotext", machine_name)
 		local inv = meta:get_inventory()
@@ -255,7 +257,7 @@ minetest.register_abm({
 		local inv    = meta:get_inventory()
 
 		if meta:get_string("infotext") == "" then
-			local meta = minetest.env:get_meta(pos)
+			local meta = minetest.get_meta(pos)
 			meta:set_string("formspec", formspec)
 			meta:set_string("infotext", machine_name)
 			local inv = meta:get_inventory()
@@ -263,13 +265,13 @@ minetest.register_abm({
 			inv:set_size("src", 2)
 			inv:set_size("dst", 1)
 		end
-		
+
 		if inv:get_size("src") == 1 then -- Old furnace -> convert it
 			inv:set_size("src", 2)
 			inv:set_stack("src", 2, inv:get_stack("src2", 1))
 			inv:set_size("src2", 0)
 		end
-		
+
 		local recipe = nil
 
 		for i, name in pairs({
@@ -325,7 +327,7 @@ minetest.register_abm({
 					"list[current_player;main;0,5;8,4;]")
 			return
 		end
-          
+
 		local recipe = lottpotion.get_potion_recipe("potionbrew", inv:get_list("src"))
 
 		if not recipe then
@@ -334,6 +336,13 @@ minetest.register_abm({
 				lottpotion.swap_node(pos, "lottpotion:potion_brewer")
 				meta:set_string("formspec", formspec)
 			end
+			return
+		end
+
+		if not inv:room_for_item("dst", ItemStack(result.output)) then
+			meta:set_string("infotext", ("%s Out Of Heat"):format(machine_name))
+			lottpotion.swap_node(pos, "lottpotion:potion_brewer")
+			meta:set_string("formspec", formspec)
 			return
 		end
 

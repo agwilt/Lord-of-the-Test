@@ -15,7 +15,7 @@ doors = {}
 --    selection_box_top
 --    only_placer_can_open: if true only the player who placed the door can
 --                          open it
---    race: optional; only players from this race or an ally can open it
+--    races: optional; only players from these races can open or dig the door
 
 function doors:register_door(name, def)
 	def.groups.not_in_creative_inventory = 1
@@ -87,15 +87,24 @@ function doors:register_door(name, def)
 				minetest.set_node(pt2, {name=name.."_t_2", param2=p2})
 			end
 
+			local meta = minetest.get_meta(pt)
+			meta:set_string("state", "closed")
+			meta = minetest.get_meta(pt2)
+			meta:set_string("state", "closed")
+
 			if def.only_placer_can_open then
 				local pn = placer:get_player_name()
-				local meta = minetest.get_meta(pt)
+				meta = minetest.get_meta(pt)
 				meta:set_string("doors_owner", pn)
 				meta:set_string("infotext", "Owned by "..pn)
 				meta = minetest.get_meta(pt2)
 				meta:set_string("doors_owner", pn)
 				meta:set_string("infotext", "Owned by "..pn)
 			end
+
+                        if def.custom_on_place then
+                                def.custom_on_place(itemstack, placer, pointed_thing, def)
+                        end
 
 			if not minetest.setting_getbool("creative_mode") then
 				itemstack:take_item()
@@ -120,6 +129,15 @@ function doors:register_door(name, def)
 		end
 		local p2 = minetest.get_node(pos).param2
 		p2 = params[p2+1]
+		local meta = minetest.get_meta(pos)
+
+		if meta:get_string("state") == "open" then
+			minetest.sound_play(def.sound_close, {pos = pos, gain = 0.3, max_hear_distance = 10})
+			meta:set_string("state", "closed")
+		else
+			minetest.sound_play(def.sound_open, {pos = pos, gain = 0.3, max_hear_distance = 10})
+			meta:set_string("state", "open")
+		end
 
 		minetest.swap_node(pos, {name=replace_dir, param2=p2})
 
@@ -128,12 +146,14 @@ function doors:register_door(name, def)
 	end
 
 	local function check_player_priv(pos, player)
-		if not def.only_placer_can_open and not def.race then
+		if not def.only_placer_can_open and not def.races then
 			return true
 		end
 		local meta = minetest.get_meta(pos)
 		local pn = player:get_player_name()
-		return meta:get_string("doors_owner") == pn or lottclasses.player_same_race_or_ally(player, def.race)
+		return (def.only_placer_can_open and meta:get_string("doors_owner") == pn) or
+                        (def.races and lottclasses.player_race_in_table(player, def.races)) or
+                        minetest.check_player_privs(pn, {GAMEwizard = true})
 	end
         local tb_final_1 = nil
         if table.getn(tb) > 2 then
@@ -283,6 +303,9 @@ doors:register_door("doors:door_wood", {
 	groups = {snappy=1,choppy=2,oddly_breakable_by_hand=2,flammable=2,door=1},
 	tiles_bottom = {"door_wood_b.png", "door_brown.png"},
 	tiles_top = {"door_wood_a.png", "door_brown.png"},
+	sounds = default.node_sound_wood_defaults(),
+	sound_open = "doors_door_open",
+	sound_close = "doors_door_close"
 })
 
 minetest.register_craft({
@@ -344,7 +367,6 @@ function doors.register_trapdoor(name, def)
 
 	def.on_rightclick = function (pos, node)
 		local newname = node.name == name_closed and name_opened or name_closed
-		local sound = false
 		if node.name == name_closed then sound = def.sound_open end
 		if node.name == name_opened then sound = def.sound_close end
 		if sound then
@@ -401,8 +423,8 @@ doors.register_trapdoor("doors:trapdoor", {
 	tile_side = "door_trapdoor_side.png",
 	groups = {snappy=1, choppy=2, oddly_breakable_by_hand=2, flammable=2, door=1},
 	sounds = default.node_sound_wood_defaults(),
-	sound_open = "door_door_open",
-	sound_close = "door_door_close"
+	sound_open = "doors_door_open",
+	sound_close = "doors_door_close"
 })
 
 minetest.register_craft({
